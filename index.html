@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hugeworth Pharmacy</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy: #1a2560;
+      --navy-dark: #111840;
+      --gold: #f5a623;
+      --gold-dark: #d4891a;
+      --white: #ffffff;
+      --light: #f4f6fb;
+      --text: #2d2d2d;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      color: var(--text);
+      background: var(--white);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      background: var(--navy-dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 5%;
+      height: 68px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.25);
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+
+    .nav-logo .logo-icon {
+      width: 40px; height: 40px;
+      background: var(--gold);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
+
+    .nav-logo span {
+      color: var(--white);
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .nav-logo span em {
+      color: var(--gold);
+      font-style: normal;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 28px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: color 0.2s;
+      letter-spacing: 0.3px;
+    }
+
+    .nav-links a:hover { color: var(--gold); }
+
+    .nav-cta {
+      background: var(--gold);
+      color: var(--navy-dark) !important;
+      padding: 8px 20px;
+      border-radius: 6px;
+    }
+
+    .nav-cta:hover { background: var(--gold-dark); color: var(--white) !important; }
+
+    /* hamburger */
+    .hamburger { display: none; cursor: pointer; flex-direction: column; gap: 5px; }
+    .hamburger span { display: block; width: 24px; height: 2px; background: var(--white); border-radius: 2px; }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--navy-dark) 55%, var(--navy) 100%);
+      display: flex;
+      align-items: center;
+      padding: 100px 5% 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #hero::before {
+      content: '';
+      position: absolute;
+      right: -80px; top: -80px;
+      width: 500px; height: 500px;
+      background: var(--gold);
+      border-radius: 50%;
+      opacity: 0.08;
+    }
+
+    #hero::after {
+      content: '';
+      position: absolute;
+      right: 120px; bottom: -120px;
+      width: 300px; height: 300px;
+      background: var(--gold);
+      border-radius: 50%;
+      opacity: 0.06;
+    }
+
+    .hero-content {
+      max-width: 600px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-tag {
+      display: inline-block;
+      background: rgba(245,166,35,0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 6px 14px;
+      border-radius: 4px;
+      margin-bottom: 24px;
+    }
+
+    .hero-content h1 {
+      font-size: clamp(2.4rem, 5vw, 4rem);
+      font-weight: 900;
+      color: var(--white);
+      line-height: 1.1;
+      margin-bottom: 8px;
+    }
+
+    .hero-content h1 span { color: var(--gold); }
+
+    .hero-subtitle {
+      font-size: 1.05rem;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.7;
+      margin: 24px 0 36px;
+      max-width: 480px;
+    }
+
+    .hero-btns {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .btn-primary {
+      background: var(--gold);
+      color: var(--navy-dark);
+      padding: 14px 30px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 0.95rem;
+      transition: background 0.2s, transform 0.15s;
+    }
+
+    .btn-primary:hover { background: var(--gold-dark); transform: translateY(-2px); }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--white);
+      padding: 14px 30px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 0.95rem;
+      border: 2px solid rgba(255,255,255,0.4);
+      transition: border-color 0.2s, transform 0.15s;
+    }
+
+    .btn-secondary:hover { border-color: var(--gold); color: var(--gold); transform: translateY(-2px); }
+
+    .hero-stats {
+      display: flex;
+      gap: 40px;
+      margin-top: 54px;
+      padding-top: 32px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .stat-item h3 {
+      font-size: 2rem;
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    .stat-item p {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.6);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 2px;
+    }
+
+    /* ── SECTION COMMON ── */
+    section { padding: 90px 5%; }
+
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+      font-weight: 900;
+      color: var(--navy-dark);
+      line-height: 1.2;
+      margin-bottom: 16px;
+    }
+
+    .section-title span { color: var(--gold); }
+
+    .section-desc {
+      font-size: 1rem;
+      color: #555;
+      line-height: 1.75;
+      max-width: 560px;
+    }
+
+    /* ── ABOUT ── */
+    #about { background: var(--light); }
+
+    .about-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .about-visual {
+      position: relative;
+    }
+
+    .about-card {
+      background: var(--navy);
+      border-radius: 20px;
+      padding: 44px 36px;
+      color: var(--white);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .about-card::before {
+      content: '';
+      position: absolute;
+      top: -40px; right: -40px;
+      width: 160px; height: 160px;
+      background: var(--gold);
+      border-radius: 50%;
+      opacity: 0.12;
+    }
+
+    .about-card .est-badge {
+      background: var(--gold);
+      color: var(--navy-dark);
+      font-weight: 800;
+      font-size: 0.8rem;
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .about-card h3 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin-bottom: 14px;
+      line-height: 1.3;
+    }
+
+    .about-card p {
+      color: rgba(255,255,255,0.75);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    .about-pillars {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+      flex-wrap: wrap;
+    }
+
+    .pillar {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.85);
+      font-weight: 600;
+    }
+
+    .about-text .section-desc { margin-bottom: 20px; }
+
+    .about-text .section-desc + .section-desc { color: #666; }
+
+    /* ── SERVICES ── */
+    #services { background: var(--white); }
+
+    .services-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .services-header .section-desc { margin: 0 auto; }
+
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .service-card {
+      background: var(--light);
+      border-radius: 16px;
+      padding: 32px 28px;
+      border: 1px solid transparent;
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+      position: relative;
+    }
+
+    .service-card:hover {
+      border-color: var(--gold);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(245,166,35,0.12);
+    }
+
+    .service-num {
+      font-size: 2.5rem;
+      font-weight: 900;
+      color: var(--gold);
+      opacity: 0.25;
+      line-height: 1;
+      margin-bottom: 14px;
+    }
+
+    .service-icon {
+      font-size: 2rem;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .service-card h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--navy-dark);
+      line-height: 1.4;
+    }
+
+    /* ── VALUES ── */
+    #values { background: var(--navy-dark); }
+
+    .values-header { margin-bottom: 56px; }
+
+    .values-header .section-title { color: var(--white); }
+
+    .values-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      max-width: 900px;
+    }
+
+    .value-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 36px 32px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .value-card:hover {
+      border-color: var(--gold);
+      background: rgba(245,166,35,0.06);
+    }
+
+    .value-card .icon {
+      font-size: 2.2rem;
+      margin-bottom: 18px;
+    }
+
+    .value-card h3 {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: var(--gold);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .value-card p {
+      color: rgba(255,255,255,0.7);
+      font-size: 0.92rem;
+      line-height: 1.7;
+    }
+
+    /* ── COMMITMENT ── */
+    #commitment { background: var(--light); }
+
+    .commitment-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 48px;
+      align-items: start;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .commitment-block { }
+
+    .commitment-block .section-desc { margin-bottom: 0; }
+
+    .highlight-card {
+      background: var(--gold);
+      border-radius: 16px;
+      padding: 36px 32px;
+    }
+
+    .highlight-card h3 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--navy-dark);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .highlight-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .highlight-item:last-child { margin-bottom: 0; }
+
+    .highlight-dot {
+      width: 10px; height: 10px;
+      min-width: 10px;
+      background: var(--navy-dark);
+      border-radius: 50%;
+      margin-top: 6px;
+    }
+
+    .highlight-item p {
+      font-size: 0.93rem;
+      font-weight: 600;
+      color: var(--navy-dark);
+      line-height: 1.6;
+    }
+
+    /* ── CONTACT ── */
+    #contact { background: var(--navy-dark); }
+
+    .contact-inner {
+      max-width: 900px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: start;
+    }
+
+    .contact-info .section-title { color: var(--white); }
+
+    .contact-details { margin-top: 36px; display: flex; flex-direction: column; gap: 22px; }
+
+    .contact-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .contact-item .ci-icon {
+      width: 44px; height: 44px;
+      background: rgba(245,166,35,0.15);
+      border: 1px solid rgba(245,166,35,0.3);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+
+    .contact-item h4 {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 4px;
+    }
+
+    .contact-item p, .contact-item a {
+      font-size: 0.95rem;
+      color: rgba(255,255,255,0.8);
+      text-decoration: none;
+      line-height: 1.5;
+    }
+
+    .contact-item a:hover { color: var(--gold); }
+
+    .contact-form {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 36px 32px;
+    }
+
+    .contact-form h3 {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: var(--white);
+      margin-bottom: 24px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: var(--white);
+      font-size: 0.93rem;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder { color: rgba(255,255,255,0.3); }
+
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus { border-color: var(--gold); }
+
+    .form-group textarea { resize: vertical; min-height: 110px; }
+
+    .form-group select option { background: var(--navy-dark); }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--gold);
+      color: var(--navy-dark);
+      padding: 14px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      margin-top: 6px;
+      transition: background 0.2s;
+    }
+
+    .btn-submit:hover { background: var(--gold-dark); }
+
+    /* ── FOOTER ── */
+    footer {
+      background: #0b0f2a;
+      padding: 32px 5%;
+      text-align: center;
+      color: rgba(255,255,255,0.4);
+      font-size: 0.85rem;
+    }
+
+    footer span { color: var(--gold); }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 820px) {
+      .nav-links { display: none; flex-direction: column; position: absolute; top: 68px; left: 0; right: 0; background: var(--navy-dark); padding: 20px 5%; gap: 16px; }
+      .nav-links.open { display: flex; }
+      .hamburger { display: flex; }
+      .about-grid, .values-grid, .commitment-grid, .contact-inner { grid-template-columns: 1fr; }
+      .hero-stats { gap: 24px; }
+    }
+
+    @media (max-width: 560px) {
+      section { padding: 60px 5%; }
+      .hero-btns { flex-direction: column; }
+      .btn-primary, .btn-secondary { text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#hero" class="nav-logo">
+      <div class="logo-icon">💊</div>
+      <span>HUGEWORTH <em>PHARMACY</em></span>
+    </a>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#about">About</a></li>
+      <li><a href="#services">Services</a></li>
+      <li><a href="#values">Values</a></li>
+      <li><a href="#commitment">Commitment</a></li>
+      <li><a href="#contact" class="nav-cta">Contact Us</a></li>
+    </ul>
+    <div class="hamburger" id="hamburger" onclick="toggleNav()">
+      <span></span><span></span><span></span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-content">
+      <div class="hero-tag">Your Health, Our Priority</div>
+      <h1>HUGEWORTH<br/><span>PHARMACY</span></h1>
+      <p class="hero-subtitle">
+        An indigenous integrative pharmaceutical company making available, affordable, and effective pharmaceutical products to all segments of society — since 2016.
+      </p>
+      <div class="hero-btns">
+        <a href="#services" class="btn-primary">Our Services</a>
+        <a href="#contact" class="btn-secondary">Get in Touch</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat-item">
+          <h3>2016</h3>
+          <p>Established</p>
+        </div>
+        <div class="stat-item">
+          <h3>8+</h3>
+          <p>Service Lines</p>
+        </div>
+        <div class="stat-item">
+          <h3>FUTA</h3>
+          <p>Key Supplier</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="about-grid">
+      <div class="about-visual">
+        <div class="about-card">
+          <span class="est-badge">Est. July 2016</span>
+          <h3>Integrated Pharmaceutical Care</h3>
+          <p>
+            We have developed core competencies in sourcing very rare ethical products across the globe through strategic partnerships with leading pharmaceutical companies worldwide.
+          </p>
+          <div class="about-pillars">
+            <span class="pillar">Affordable</span>
+            <span class="pillar">Effective</span>
+            <span class="pillar">Accessible</span>
+            <span class="pillar">Ethical</span>
+          </div>
+        </div>
+      </div>
+      <div class="about-text">
+        <p class="section-label">Who We Are</p>
+        <h2 class="section-title">About <span>Hugeworth</span> Pharmacy</h2>
+        <p class="section-desc">
+          Hugeworth Pharmacy is an indigenous integrative pharmaceutical company with the vision to make available, affordable and effective pharmaceutical products to all segments of society.
+        </p>
+        <br/>
+        <p class="section-desc">
+          Our business model is predicated on prioritism and long-term sustainable growth. We are making incremental investments in marketing, sales, and diversification of our business lines to better serve the healthcare community.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SERVICES -->
+  <section id="services">
+    <div class="services-header">
+      <p class="section-label">What We Offer</p>
+      <h2 class="section-title">Our Core <span>Products & Services</span></h2>
+      <p class="section-desc">
+        A comprehensive range of pharmaceutical and healthcare solutions designed to serve individuals, institutions, and the broader community.
+      </p>
+    </div>
+    <div class="services-grid">
+
+      <div class="service-card">
+        <div class="service-num">01</div>
+        <span class="service-icon">🛡️</span>
+        <h3>Distribution &amp; Supply of Protective Devices for Health Care Providers and Personal Users</h3>
+      </div>
+
+      <div class="service-card">
+        <div class="service-num">02</div>
+        <span class="service-icon">💊</span>
+        <h3>Supply of Drugs and Other Pharmaceutical Products</h3>
+      </div>
+
+      <div class="service-card">
+        <div class="service-num">03</div>
+        <span class="service-icon">🩺</span>
+        <h3>Sales of Home Diagnostics and Hospital Equipment</h3>
+      </div>
+
+      <div class="service-card">
+        <div class="service-num">04</div>
+        <span class="service-icon">🤝</span>
+        <h3>Provisions of Capacity Supports</h3>
+      </div>
+
+      <div class="service-card">
+        <div class="service-num">05</div>
+        <span class="service-icon">👨‍⚕️</span>
+        <h3>Pharmaceutical Care Consultancy</h3>
+      </div>
+
+      <div class="service-card">
+        <div class="service-num">06</div>
+        <span class="service-icon">🔬</span>
+        <h3>Supply of Scientific Equipment for Research</h3>
+      </div>
+
+      <div class="service-card">
+        <div class="service-num">07</div>
+        <span class="service-icon">🌱</span>
+        <h3>Environmental Bio-Remediation</h3>
+      </div>
+
+      <div class="service-card">
+        <div class="service-num">08</div>
+        <span class="service-icon">🧹</span>
+        <h3>Cleaning and Fumigation</h3>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- VALUES -->
+  <section id="values">
+    <div class="values-header">
+      <p class="section-label" style="color:var(--gold)">What Drives Us</p>
+      <h2 class="section-title" style="color:var(--white)">Our Core <span>Values</span></h2>
+    </div>
+    <div class="values-grid">
+      <div class="value-card">
+        <div class="icon">⚖️</div>
+        <h3>Integrity</h3>
+        <p>
+          Our commitment to business ethics, fairness, honesty and transparency are equally important to us. At the end of each day we want to be proud not only for the goals we have achieved but also for the way we achieved them.
+        </p>
+      </div>
+      <div class="value-card">
+        <div class="icon">💡</div>
+        <h3>Innovation</h3>
+        <p>
+          We believe we can make a difference by thinking beyond the obvious. We always consider new paths prior to every action so as to bring true value to the healthcare community, parties and their families.
+        </p>
+      </div>
+      <div class="value-card">
+        <div class="icon">🎯</div>
+        <h3>Commitment</h3>
+        <p>
+          We always aim high and demand the best. Success is only achieved when our partners also achieve their goals. We never remain complacent but always find a better way to do things.
+        </p>
+      </div>
+      <div class="value-card">
+        <div class="icon">🏥</div>
+        <h3>Community Impact</h3>
+        <p>
+          It is our goal to support government in their desire to improve the health care delivery system in our immediate community and across Ondo State.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMITMENT -->
+  <section id="commitment">
+    <div class="commitment-grid">
+      <div class="commitment-block">
+        <p class="section-label">Track Record</p>
+        <h2 class="section-title">Proven <span>Commitment</span></h2>
+        <p class="section-desc">
+          We always aim high and demand the best. To us, success is only achieved when our partners also achieve their goals. For everything we do, we do not remain complacent but always find a better way to do things.
+        </p>
+      </div>
+      <div class="highlight-card">
+        <h3>Ongoing Services</h3>
+        <div class="highlight-item">
+          <div class="highlight-dot"></div>
+          <p>Our organization is one of the core pharmaceutical drug suppliers to FUTA University Health Centre.</p>
+        </div>
+        <div class="highlight-item">
+          <div class="highlight-dot"></div>
+          <p>We provided protective devices and hand sanitizers to households and organizations during the COVID-19 pandemic.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section id="contact">
+    <div class="contact-inner">
+      <div class="contact-info">
+        <p class="section-label" style="color:var(--gold)">Find Us</p>
+        <h2 class="section-title" style="color:var(--white)">Get in <span>Touch</span></h2>
+        <div class="contact-details">
+          <div class="contact-item">
+            <div class="ci-icon">📍</div>
+            <div>
+              <h4>Address</h4>
+              <p>Suite B1 ABC Complex, opposite SUBEB,<br/>ODA Road, Akure, Ondo State.</p>
+            </div>
+          </div>
+          <div class="contact-item">
+            <div class="ci-icon">📞</div>
+            <div>
+              <h4>Phone</h4>
+              <a href="tel:08038453496">08038453496</a>
+            </div>
+          </div>
+          <div class="contact-item">
+            <div class="ci-icon">✉️</div>
+            <div>
+              <h4>Email</h4>
+              <a href="mailto:Hugeworthpharmacy@gmail.com">Hugeworthpharmacy@gmail.com</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="contact-form">
+        <h3>Send Us a Message</h3>
+        <form action="https://formsubmit.co/pharmadebola@gmail.com" method="POST">
+          <!-- Formsubmit config -->
+          <input type="hidden" name="_subject" value="New Enquiry - Hugeworth Pharmacy Website" />
+          <input type="hidden" name="_captcha" value="false" />
+          <input type="hidden" name="_next" value="https://hugeworthpharmacy.com/thankyou.html" />
+          <input type="hidden" name="_template" value="table" />
+
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="name" placeholder="Your full name" required />
+          </div>
+          <div class="form-group">
+            <label>Email Address</label>
+            <input type="email" name="email" placeholder="your@email.com" required />
+          </div>
+          <div class="form-group">
+            <label>Phone Number</label>
+            <input type="tel" name="phone" placeholder="e.g. 08012345678" />
+          </div>
+          <div class="form-group">
+            <label>Service of Interest</label>
+            <select name="service">
+              <option value="">Select a service...</option>
+              <option>Drug Supply</option>
+              <option>Protective Devices</option>
+              <option>Home Diagnostics &amp; Equipment</option>
+              <option>Pharmaceutical Consultancy</option>
+              <option>Scientific Equipment</option>
+              <option>Environmental Bio-Remediation</option>
+              <option>Cleaning &amp; Fumigation</option>
+              <option>Capacity Support</option>
+              <option>General Inquiry</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Message</label>
+            <textarea name="message" placeholder="Tell us how we can help..."></textarea>
+          </div>
+          <button type="submit" class="btn-submit">Send Message</button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <p>&copy; <span id="footer-year"></span> <span>Hugeworth Pharmacy</span>. All rights reserved. &nbsp;|&nbsp; Suite B1 ABC Complex, ODA Road, Akure, Ondo State.</p>
+  </footer>
+
+  <script>
+    function toggleNav() {
+      document.getElementById('navLinks').classList.toggle('open');
+    }
+
+    // Close nav on link click (mobile)
+    document.querySelectorAll('.nav-links a').forEach(link => {
+      link.addEventListener('click', () => {
+        document.getElementById('navLinks').classList.remove('open');
+      });
+    });
+
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+
+  </script>
+</body>
+</html>
