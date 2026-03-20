@@ -101,13 +101,11 @@
     #hero {
       min-height: 100vh;
       background: linear-gradient(135deg, var(--navy-dark) 55%, var(--navy) 100%);
-      display: grid;
-      grid-template-columns: 1fr 1fr;
+      display: flex;
       align-items: center;
       padding: 100px 5% 60px;
       position: relative;
       overflow: hidden;
-      gap: 40px;
     }
 
     #hero::before {
@@ -797,18 +795,6 @@
       </div>
     </div>
 
-    <div class="hero-image">
-      <div class="hero-image-wrap">
-        <img
-          src="https://images.unsplash.com/photo-1576671081837-49000212a370?w=600&q=80"
-          alt="Pharmacist at work"
-          loading="eager"
-        />
-        <div class="hero-image-badge">
-          Trusted Since 2016<br/>Akure, Ondo State
-        </div>
-      </div>
-    </div>
   </section>
 
   <!-- ABOUT -->
