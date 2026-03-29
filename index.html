@@ -368,23 +368,73 @@
 
     .services-header {
       text-align: center;
-      margin-bottom: 56px;
+      margin-bottom: 40px;
     }
 
     .services-header .section-desc { margin: 0 auto; }
 
+    .services-tabs {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 44px;
+    }
+
+    .tab-btn {
+      padding: 9px 20px;
+      border-radius: 30px;
+      border: 1px solid rgba(26,37,96,0.2);
+      background: transparent;
+      color: var(--text);
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.3px;
+      transition: all 0.2s;
+    }
+
+    .tab-btn:hover { border-color: var(--gold); color: var(--navy-dark); }
+
+    .tab-btn.active {
+      background: var(--navy-dark);
+      color: var(--white);
+      border-color: var(--navy-dark);
+    }
+
+    .services-category { display: none; max-width: 1100px; margin: 0 auto; }
+    .services-category.active { display: block; }
+
+    .category-intro {
+      margin-bottom: 28px;
+    }
+
+    .category-intro p {
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 4px;
+    }
+
+    .category-intro h3 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--navy-dark);
+    }
+
     .services-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 24px;
-      max-width: 1100px;
-      margin: 0 auto;
+      gap: 20px;
     }
 
     .service-card {
       background: var(--light);
       border-radius: 16px;
-      padding: 32px 28px;
+      padding: 28px 24px;
       border: 1px solid transparent;
       transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
       position: relative;
@@ -406,8 +456,8 @@
     }
 
     .service-icon {
-      font-size: 2rem;
-      margin-bottom: 16px;
+      font-size: 1.9rem;
+      margin-bottom: 14px;
       display: block;
     }
 
@@ -416,6 +466,14 @@
       font-weight: 700;
       color: var(--navy-dark);
       line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .service-highlight {
+      font-size: 0.8rem;
+      color: #888;
+      font-style: italic;
+      line-height: 1.45;
     }
 
     /* ── GALLERY ── */
@@ -770,7 +828,7 @@
           <p>Established</p>
         </div>
         <div class="stat-item">
-          <h3>8+</h3>
+          <h3>25+</h3>
           <p>Service Lines</p>
         </div>
         <div class="stat-item">
@@ -818,61 +876,266 @@
   <section id="services">
     <div class="services-header">
       <p class="section-label">What We Offer</p>
-      <h2 class="section-title">Our Core <span>Products & Services</span></h2>
+      <h2 class="section-title">Our <span>Full Range of Services</span></h2>
       <p class="section-desc">
-        A comprehensive range of pharmaceutical and healthcare solutions designed to serve individuals, institutions, and the broader community.
+        A Community Health Hub — not just a drug store. Comprehensive pharmaceutical and healthcare solutions for individuals, families, institutions, and the broader community.
       </p>
     </div>
-    <div class="services-grid">
 
-      <div class="service-card">
-        <div class="service-num">01</div>
-        <span class="service-icon">🛡️</span>
-        <h3>Distribution &amp; Supply of Protective Devices for Health Care Providers and Personal Users</h3>
+    <!-- TABS -->
+    <div class="services-tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'cat-core')">Core Pharmacy</button>
+      <button class="tab-btn" onclick="switchTab(this,'cat-clinical')">Clinical</button>
+      <button class="tab-btn" onclick="switchTab(this,'cat-preventive')">Preventive Health</button>
+      <button class="tab-btn" onclick="switchTab(this,'cat-specialized')">Specialized Care</button>
+      <button class="tab-btn" onclick="switchTab(this,'cat-business')">Business Services</button>
+      <button class="tab-btn" onclick="switchTab(this,'cat-premium')">Premium</button>
+    </div>
+
+    <!-- CORE PHARMACY -->
+    <div id="cat-core" class="services-category active">
+      <div class="category-intro">
+        <p>Foundation</p>
+        <h3>Core Pharmacy Services</h3>
       </div>
-
-      <div class="service-card">
-        <div class="service-num">02</div>
-        <span class="service-icon">💊</span>
-        <h3>Supply of Drugs and Other Pharmaceutical Products</h3>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-num">01</div>
+          <span class="service-icon">💊</span>
+          <h3>Medication Dispensing</h3>
+          <p class="service-highlight">Safe, Accurate, and Patient-Centered Medication Care</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">02</div>
+          <span class="service-icon">📋</span>
+          <h3>Medication Therapy Management (MTM)</h3>
+          <p class="service-highlight">Improving Outcomes, Reducing Risks</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">03</div>
+          <span class="service-icon">🔄</span>
+          <h3>Prescription Refill &amp; Synchronization</h3>
+          <p class="service-highlight">One Visit, All Your Medications</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">04</div>
+          <span class="service-icon">🛡️</span>
+          <h3>Distribution &amp; Supply of Protective Devices</h3>
+          <p class="service-highlight">For healthcare providers and personal users</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">05</div>
+          <span class="service-icon">👨‍⚕️</span>
+          <h3>Pharmaceutical Care Consultancy</h3>
+          <p class="service-highlight">Evidence-based drug advice and patient counselling</p>
+        </div>
       </div>
+    </div>
 
-      <div class="service-card">
-        <div class="service-num">03</div>
-        <span class="service-icon">🩺</span>
-        <h3>Sales of Home Diagnostics and Hospital Equipment</h3>
+    <!-- CLINICAL -->
+    <div id="cat-clinical" class="services-category">
+      <div class="category-intro">
+        <p>Clinical &amp; Extended</p>
+        <h3>Clinical Services</h3>
       </div>
-
-      <div class="service-card">
-        <div class="service-num">04</div>
-        <span class="service-icon">🤝</span>
-        <h3>Provisions of Capacity Supports</h3>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-num">01</div>
+          <span class="service-icon">🤧</span>
+          <h3>Minor Ailment Management</h3>
+          <p class="service-highlight">First Point of Care for Everyday Illnesses</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">02</div>
+          <span class="service-icon">💉</span>
+          <h3>Vaccination &amp; Immunization Services</h3>
+          <p class="service-highlight">Protecting Communities Through Prevention</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">03</div>
+          <span class="service-icon">❤️</span>
+          <h3>Chronic Disease Management</h3>
+          <p class="service-highlight">Partnering With You for Long-Term Health</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">04</div>
+          <span class="service-icon">🩸</span>
+          <h3>Point-of-Care Testing</h3>
+          <p class="service-highlight">Quick Tests, Immediate Decisions</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">05</div>
+          <span class="service-icon">🩺</span>
+          <h3>Sales of Home Diagnostics &amp; Hospital Equipment</h3>
+          <p class="service-highlight">Professional-grade equipment for home and clinic use</p>
+        </div>
       </div>
+    </div>
 
-      <div class="service-card">
-        <div class="service-num">05</div>
-        <span class="service-icon">👨‍⚕️</span>
-        <h3>Pharmaceutical Care Consultancy</h3>
+    <!-- PREVENTIVE -->
+    <div id="cat-preventive" class="services-category">
+      <div class="category-intro">
+        <p>Public Health</p>
+        <h3>Preventive &amp; Public Health Services</h3>
       </div>
-
-      <div class="service-card">
-        <div class="service-num">06</div>
-        <span class="service-icon">🔬</span>
-        <h3>Supply of Scientific Equipment for Research</h3>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-num">01</div>
+          <span class="service-icon">🔍</span>
+          <h3>Health Screening Programs</h3>
+          <p class="service-highlight">Early Detection Saves Lives</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">02</div>
+          <span class="service-icon">🚭</span>
+          <h3>Smoking Cessation Program</h3>
+          <p class="service-highlight">Helping You Quit for Good</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">03</div>
+          <span class="service-icon">🥗</span>
+          <h3>Weight Management &amp; Lifestyle Coaching</h3>
+          <p class="service-highlight">Healthy Living Starts Here</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">04</div>
+          <span class="service-icon">🌱</span>
+          <h3>Environmental Bio-Remediation</h3>
+          <p class="service-highlight">Protecting community health through clean environments</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">05</div>
+          <span class="service-icon">🧹</span>
+          <h3>Cleaning and Fumigation</h3>
+          <p class="service-highlight">Safe, thorough sanitation for homes and facilities</p>
+        </div>
       </div>
+    </div>
 
-      <div class="service-card">
-        <div class="service-num">07</div>
-        <span class="service-icon">🌱</span>
-        <h3>Environmental Bio-Remediation</h3>
+    <!-- SPECIALIZED -->
+    <div id="cat-specialized" class="services-category">
+      <div class="category-intro">
+        <p>Specialized</p>
+        <h3>Specialized Care Services</h3>
       </div>
-
-      <div class="service-card">
-        <div class="service-num">08</div>
-        <span class="service-icon">🧹</span>
-        <h3>Cleaning and Fumigation</h3>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-num">01</div>
+          <span class="service-icon">🤰</span>
+          <h3>Maternal &amp; Child Health Services</h3>
+          <p class="service-highlight">Caring for Mother and Child</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">02</div>
+          <span class="service-icon">✈️</span>
+          <h3>Travel Health Services</h3>
+          <p class="service-highlight">Stay Safe Wherever You Go</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">03</div>
+          <span class="service-icon">👴</span>
+          <h3>Geriatric Care Services</h3>
+          <p class="service-highlight">Dignified Care for Seniors</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">04</div>
+          <span class="service-icon">⚗️</span>
+          <h3>Extemporaneous Compounding</h3>
+          <p class="service-highlight">Tailored Medications for Unique Needs</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">05</div>
+          <span class="service-icon">📚</span>
+          <h3>Drug Information Services</h3>
+          <p class="service-highlight">Trusted Medication Expertise</p>
+        </div>
       </div>
+    </div>
 
+    <!-- BUSINESS -->
+    <div id="cat-business" class="services-category">
+      <div class="category-intro">
+        <p>Value-Added</p>
+        <h3>Business &amp; Value-Added Services</h3>
+      </div>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-num">01</div>
+          <span class="service-icon">🚚</span>
+          <h3>Home Delivery Services</h3>
+          <p class="service-highlight">Healthcare at Your Doorstep</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">02</div>
+          <span class="service-icon">📱</span>
+          <h3>Telepharmacy / Virtual Consultations</h3>
+          <p class="service-highlight">Care Without Distance</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">03</div>
+          <span class="service-icon">🏢</span>
+          <h3>Corporate &amp; Institutional Services</h3>
+          <p class="service-highlight">Healthcare Solutions for Organizations</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">04</div>
+          <span class="service-icon">🎁</span>
+          <h3>Loyalty &amp; Patient Care Programs</h3>
+          <p class="service-highlight">Rewarding Healthy Choices</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">05</div>
+          <span class="service-icon">🔬</span>
+          <h3>Supply of Scientific Equipment for Research</h3>
+          <p class="service-highlight">Equipping labs and research institutions</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">06</div>
+          <span class="service-icon">🤝</span>
+          <h3>Capacity Support Services</h3>
+          <p class="service-highlight">Strengthening healthcare workforce and systems</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREMIUM -->
+    <div id="cat-premium" class="services-category">
+      <div class="category-intro">
+        <p>Advanced</p>
+        <h3>Premium &amp; Emerging Services</h3>
+      </div>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-num">01</div>
+          <span class="service-icon">🧬</span>
+          <h3>Pharmacogenomics Testing</h3>
+          <p class="service-highlight">Personalized medicine based on your genetic profile</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">02</div>
+          <span class="service-icon">🧠</span>
+          <h3>Pain Management Clinics</h3>
+          <p class="service-highlight">Structured, pharmacist-led pain care</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">03</div>
+          <span class="service-icon">🩺</span>
+          <h3>Anticoagulation Monitoring</h3>
+          <p class="service-highlight">Safe management of blood-thinning therapy</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">04</div>
+          <span class="service-icon">💜</span>
+          <h3>Sexual Health Services</h3>
+          <p class="service-highlight">Confidential, dignified sexual health support</p>
+        </div>
+        <div class="service-card">
+          <div class="service-num">05</div>
+          <span class="service-icon">🌿</span>
+          <h3>Mental Health Support</h3>
+          <p class="service-highlight">Pharmacist-guided mental wellness resources</p>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -1034,14 +1297,48 @@
             <label>Service of Interest</label>
             <select name="service">
               <option value="">Select a service...</option>
-              <option>Drug Supply</option>
-              <option>Protective Devices</option>
-              <option>Home Diagnostics &amp; Equipment</option>
-              <option>Pharmaceutical Consultancy</option>
-              <option>Scientific Equipment</option>
-              <option>Environmental Bio-Remediation</option>
-              <option>Cleaning &amp; Fumigation</option>
-              <option>Capacity Support</option>
+              <optgroup label="Core Pharmacy">
+                <option>Medication Dispensing</option>
+                <option>Medication Therapy Management</option>
+                <option>Prescription Refill &amp; Synchronization</option>
+                <option>Drug Supply &amp; Distribution</option>
+                <option>Pharmaceutical Consultancy</option>
+              </optgroup>
+              <optgroup label="Clinical Services">
+                <option>Minor Ailment Management</option>
+                <option>Vaccination &amp; Immunization</option>
+                <option>Chronic Disease Management</option>
+                <option>Point-of-Care Testing</option>
+                <option>Home Diagnostics &amp; Equipment</option>
+              </optgroup>
+              <optgroup label="Preventive Health">
+                <option>Health Screening</option>
+                <option>Smoking Cessation</option>
+                <option>Weight Management &amp; Lifestyle Coaching</option>
+                <option>Environmental Bio-Remediation</option>
+                <option>Cleaning &amp; Fumigation</option>
+              </optgroup>
+              <optgroup label="Specialized Care">
+                <option>Maternal &amp; Child Health</option>
+                <option>Travel Health Services</option>
+                <option>Geriatric Care</option>
+                <option>Extemporaneous Compounding</option>
+                <option>Drug Information Services</option>
+              </optgroup>
+              <optgroup label="Business Services">
+                <option>Home Delivery</option>
+                <option>Telepharmacy / Virtual Consultation</option>
+                <option>Corporate &amp; Institutional Services</option>
+                <option>Scientific Equipment for Research</option>
+                <option>Capacity Support</option>
+              </optgroup>
+              <optgroup label="Premium Services">
+                <option>Pharmacogenomics Testing</option>
+                <option>Pain Management</option>
+                <option>Anticoagulation Monitoring</option>
+                <option>Sexual Health Services</option>
+                <option>Mental Health Support</option>
+              </optgroup>
               <option>General Inquiry</option>
             </select>
           </div>
@@ -1063,6 +1360,13 @@
   <script>
     function toggleNav() {
       document.getElementById('navLinks').classList.toggle('open');
+    }
+
+    function switchTab(btn, categoryId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.services-category').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(categoryId).classList.add('active');
     }
 
     // Close nav on link click (mobile)
