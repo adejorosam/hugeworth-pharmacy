@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Reports</div>
+          <div class="page-sub">Sales performance, stock movement, and invoice lookup</div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="tabs">
+          <button class="tab-btn-app active" id="tabBtnSales" onclick="switchTab('sales')">Sales Report</button>
+          <button class="tab-btn-app" id="tabBtnInventory" onclick="switchTab('inventory')">Inventory Report</button>
+          <button class="tab-btn-app" id="tabBtnLookup" onclick="switchTab('lookup')">Invoice Lookup</button>
+        </div>
+
+        <div id="panelSales">
+          <div class="filter-row">
+            <label style="font-size:0.82rem; font-weight:700; color:#666;">Period:</label>
+            <select id="periodFilter" onchange="renderSalesReport()">
+              <option value="today">Today</option>
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="all">All Time</option>
+            </select>
+            <button class="btn-outline" onclick="sendEodSummary()" style="margin-left:auto;">📧 Send Today's EOD Summary to Management</button>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <span class="stat-icon">💰</span>
+              <div class="stat-value" id="repRevenue">₦0</div>
+              <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">🧾</span>
+              <div class="stat-value" id="repTxns">0</div>
+              <div class="stat-label">Transactions</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">📊</span>
+              <div class="stat-value" id="repAvg">₦0</div>
+              <div class="stat-label">Avg Sale Value</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">↩️</span>
+              <div class="stat-value" id="repRefunds">0</div>
+              <div class="stat-label">Refunds Issued</div>
+            </div>
+          </div>
+
+          <div class="section-heading">Top Selling Products</div>
+          <div class="card">
+            <table class="hw-table">
+              <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+              <tbody id="topProductsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="panelInventory" style="display:none;">
+          <div class="section-heading">Stock &amp; Movement (last 30 days)</div>
+          <div class="card">
+            <table class="hw-table">
+              <thead><tr><th>Product</th><th>Category</th><th>Qty in Stock</th><th>Stock Value</th><th>Movement</th></tr></thead>
+              <tbody id="inventoryReportBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="panelLookup" style="display:none;">
+          <div class="card" style="margin-bottom:20px;">
+            <div class="section-heading">Find a Sale by Invoice Number</div>
+            <div class="filter-row">
+              <input type="text" id="invoiceSearch" placeholder="e.g. INV-12345678" style="flex:1;" />
+              <button class="btn-gold" onclick="lookupInvoice()">Search</button>
+            </div>
+          </div>
+          <div id="lookupResult"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    let staff = null;
+
+    (async () => {
+      staff = HW.renderShell('reports');
+      if (!staff) return;
+      if (staff.role === 'cashier') { window.location.href = 'dashboard.html'; return; }
+      await renderSalesReport();
+    })();
+
+    function switchTab(tab) {
+      document.getElementById('panelSales').style.display = tab === 'sales' ? 'block' : 'none';
+      document.getElementById('panelInventory').style.display = tab === 'inventory' ? 'block' : 'none';
+      document.getElementById('panelLookup').style.display = tab === 'lookup' ? 'block' : 'none';
+      document.getElementById('tabBtnSales').classList.toggle('active', tab === 'sales');
+      document.getElementById('tabBtnInventory').classList.toggle('active', tab === 'inventory');
+      document.getElementById('tabBtnLookup').classList.toggle('active', tab === 'lookup');
+      if (tab === 'inventory') renderInventoryReport();
+    }
+
+    async function renderSalesReport() {
+      const period = document.getElementById('periodFilter').value;
+      const report = await HW.apiFetch('/reports/sales?period=' + period);
+
+      document.getElementById('repRevenue').textContent = '₦' + report.revenue.toLocaleString();
+      document.getElementById('repTxns').textContent = report.transactions;
+      document.getElementById('repAvg').textContent = '₦' + report.avgSale.toLocaleString();
+      document.getElementById('repRefunds').textContent = report.refundCount;
+
+      document.getElementById('topProductsBody').innerHTML = report.topProducts.map((p) =>
+        '<tr><td>' + p.name + '</td><td>' + p.qty + '</td><td>₦' + p.revenue.toLocaleString() + '</td></tr>'
+      ).join('') || '<tr><td colspan="3" class="empty-cell">No sales in this period yet.</td></tr>';
+    }
+
+    async function renderInventoryReport() {
+      const report = await HW.apiFetch('/reports/inventory');
+      document.getElementById('inventoryReportBody').innerHTML = report.map((p) =>
+        '<tr>' +
+          '<td>' + p.name + '</td>' +
+          '<td>' + p.category + '</td>' +
+          '<td>' + p.qty + '</td>' +
+          '<td>₦' + p.stockValue.toLocaleString() + '</td>' +
+          '<td><span class="badge ' + (p.moving ? 'ok' : 'warn') + '">' + (p.moving ? 'Moving' : 'Not Moving') + '</span></td>' +
+        '</tr>'
+      ).join('') || '<tr><td colspan="5" class="empty-cell">No products yet.</td></tr>';
+    }
+
+    async function sendEodSummary() {
+      try {
+        const summary = await HW.apiFetch('/reports/eod-summary', { method: 'POST' });
+        alert('📧 EOD Summary generated:\n\n' + summary.transactions + ' sales today\nTotal revenue: ₦' + summary.revenue.toLocaleString() + '\n\n(Logged in Activity — actual email delivery needs an email provider set up, which is a separate decision per the proposal.)');
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function lookupInvoice() {
+      const query = document.getElementById('invoiceSearch').value.trim();
+      const result = document.getElementById('lookupResult');
+      if (!query) { result.innerHTML = ''; return; }
+
+      try {
+        const sale = await HW.apiFetch('/sales/' + encodeURIComponent(query));
+        result.innerHTML = '<div class="card">' +
+          '<div class="section-heading">Invoice ' + sale.invoiceNo + (sale.refunded ? ' <span class="badge danger">Refunded</span>' : '') + '</div>' +
+          '<div class="receipt-line"><span>Cashier</span><span>' + sale.cashier.name + '</span></div>' +
+          '<div class="receipt-line"><span>Date</span><span>' + new Date(sale.createdAt).toLocaleString() + '</span></div>' +
+          sale.items.map((item) => '<div class="receipt-line"><span>' + item.qty + ' × ' + item.productName + '</span><span>₦' + (item.qty * item.price).toLocaleString() + '</span></div>').join('') +
+          (sale.discountPct ? '<div class="receipt-line"><span>Subtotal</span><span>₦' + Number(sale.subtotal).toLocaleString() + '</span></div><div class="receipt-line"><span>Discount (' + sale.discountPct + '%)</span><span>-₦' + (Number(sale.subtotal) - Number(sale.total)).toLocaleString() + '</span></div>' : '') +
+          '<div class="cart-total-row" style="margin-top:10px;"><span>Total</span><span>₦' + Number(sale.total).toLocaleString() + '</span></div>' +
+          (sale.refunded
+            ? '<p style="font-size:0.8rem; color:#888; margin-top:14px;">Refunded ' + HW.timeAgo(sale.refundedAt) + '</p>'
+            : '<div class="modal-actions" style="margin-top:16px;"><button class="btn-outline" style="border-color:#c8382f; color:#c8382f;" onclick="processRefund(\'' + sale.invoiceNo + '\')">Process Refund</button></div>') +
+        '</div>';
+      } catch (err) {
+        result.innerHTML = '<div class="card placeholder-card"><div class="ph-icon">🔍</div><h3>No match found</h3><p>Check the invoice number and try again.</p></div>';
+      }
+    }
+
+    async function processRefund(invoiceNo) {
+      const pin = HW.promptManagerPin(staff, 'process this refund');
+      if (staff.role !== 'admin' && !pin) return;
+      if (!confirm('Refund invoice ' + invoiceNo + '? Stock will be returned.')) return;
+
+      try {
+        await HW.apiFetch('/sales/' + encodeURIComponent(invoiceNo) + '/refund', {
+          method: 'POST',
+          body: JSON.stringify({ managerPin: pin || undefined }),
+        });
+        document.getElementById('invoiceSearch').value = invoiceNo;
+        await lookupInvoice();
+        await renderSalesReport();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+  </script>
+</body>
+</html>

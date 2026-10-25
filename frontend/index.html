@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hugeworth PMS — Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .login-form .field { margin-bottom: 16px; }
+    .login-form label { display: block; font-size: 0.78rem; font-weight: 700; color: #666; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .login-form input { width: 100%; border: 1px solid rgba(0,0,0,0.12); border-radius: 8px; padding: 12px 14px; font-family: inherit; font-size: 0.95rem; outline: none; }
+    .login-form input:focus { border-color: var(--gold); }
+    .login-error { background: rgba(214,69,69,0.1); border: 1px solid rgba(214,69,69,0.3); color: #c8382f; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="login-screen">
+    <div class="login-card">
+      <img src="hugeworth-logo.jpeg" alt="Hugeworth Pharmacy" />
+      <div class="login-tag">Pharmacy Management System</div>
+      <h1>Sign In</h1>
+      <p class="login-sub">Enter your staff email and password to continue.</p>
+
+      <div class="login-error" id="loginError"></div>
+
+      <form class="login-form" id="loginForm">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="email" required autocomplete="username" />
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" required autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-gold" style="width:100%;" id="loginBtn">Log In</button>
+      </form>
+
+      <p class="login-footnote">Forgot your password? Ask an Admin to reset it from the Staff page.</p>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorBox = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+      errorBox.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      try {
+        await HW.login(document.getElementById('email').value.trim(), document.getElementById('password').value);
+        window.location.href = 'dashboard.html';
+      } catch (err) {
+        errorBox.textContent = err.message;
+        errorBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Log In';
+      }
+    });
+  </script>
+</body>
+</html>

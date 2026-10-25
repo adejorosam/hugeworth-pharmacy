@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inventory — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Inventory</div>
+          <div class="page-sub">Products, suppliers, and stock levels</div>
+        </div>
+        <span class="demo-badge">Demo Preview</span>
+      </div>
+      <div class="content">
+        <div id="reorderBanner"></div>
+
+        <div class="content-header">
+          <div class="section-heading" style="margin-bottom:0;">All Products</div>
+          <div style="display:flex; gap:10px;">
+            <button class="btn-outline" onclick="exportProducts()">⬇ Export CSV</button>
+            <button class="btn-outline" onclick="document.getElementById('importFileInput').click()">⬆ Import CSV</button>
+            <input type="file" id="importFileInput" accept=".csv" style="display:none;" onchange="handleImportFile(event)" />
+            <button class="btn-gold" onclick="openAddModal()">+ Add Product</button>
+          </div>
+        </div>
+
+        <div class="filter-row">
+          <label style="font-size:0.82rem; font-weight:700; color:#666;">Branch:</label>
+          <select id="branchFilter" onchange="renderTable()">
+            <option value="">All Branches</option>
+          </select>
+        </div>
+
+        <div class="card">
+          <table class="hw-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Branch</th>
+                <th>Category</th>
+                <th>Supplier</th>
+                <th>Stock</th>
+                <th>Unit Price</th>
+                <th>Expiry</th>
+                <th>Status</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="productBody"></tbody>
+          </table>
+          <div class="placeholder-card" id="emptyState" style="display:none;">
+            <div class="ph-icon">📦</div>
+            <h3>No products yet</h3>
+            <p>Click "Add Product" above to record your first item in stock.</p>
+          </div>
+        </div>
+
+        <div class="section-heading" style="margin-top:28px;">Stock Across Branches</div>
+        <div class="card">
+          <table class="hw-table">
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th id="branchOverviewHead1"></th>
+                <th id="branchOverviewHead2"></th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody id="branchOverviewBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT MODAL -->
+  <div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal-card">
+      <h3 id="modalTitle">Add Product</h3>
+      <form id="productForm" onsubmit="saveProduct(event)">
+        <input type="hidden" id="productId" />
+        <div class="field">
+          <label>Product Name</label>
+          <input type="text" id="fieldName" required placeholder="e.g. Paracetamol 500mg" />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Category</label>
+            <select id="fieldCategory">
+              <option>Analgesics</option>
+              <option>Antibiotics</option>
+              <option>Antimalarials</option>
+              <option>Antidiabetics</option>
+              <option>Antihypertensives</option>
+              <option>Vitamins &amp; Supplements</option>
+              <option>Cold &amp; Flu</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Supplier</label>
+            <input type="text" id="fieldSupplier" required placeholder="e.g. Emzor Pharmaceuticals" />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Quantity in Stock</label>
+            <input type="number" id="fieldQty" min="0" required />
+          </div>
+          <div class="field">
+            <label>Min Stock Level</label>
+            <input type="number" id="fieldMinQty" min="0" required />
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Reorder Level</label>
+            <input type="number" id="fieldReorderLevel" min="0" required />
+          </div>
+          <div class="field">
+            <label>Branch</label>
+            <select id="fieldBranch"></select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Unit Price (₦)</label>
+            <input type="number" id="fieldPrice" min="0" step="0.01" required />
+          </div>
+          <div class="field">
+            <label>Expiry Date</label>
+            <input type="date" id="fieldExpiry" required />
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const session = HW.renderShell('inventory');
+    if (session) {
+      if (session.role === 'cashier') {
+        window.location.href = 'dashboard.html';
+      } else {
+        populateBranchSelects();
+        seedDemoProducts();
+        renderTable();
+        renderBranchOverview();
+        renderReorderBanner();
+      }
+    }
+
+    function populateBranchSelects() {
+      const filter = document.getElementById('branchFilter');
+      const fieldBranch = document.getElementById('fieldBranch');
+      HW.BRANCHES.forEach((b) => {
+        filter.innerHTML += '<option value="' + b + '">' + b + '</option>';
+        fieldBranch.innerHTML += '<option value="' + b + '">' + b + '</option>';
+      });
+    }
+
+    function getProducts() {
+      return JSON.parse(localStorage.getItem(HW.keys.INVENTORY_KEY) || '[]');
+    }
+
+    function saveProducts(list) {
+      localStorage.setItem(HW.keys.INVENTORY_KEY, JSON.stringify(list));
+    }
+
+    const CSV_COLUMNS = ['name', 'category', 'supplier', 'branch', 'qty', 'minQty', 'reorderLevel', 'price', 'expiryDate'];
+    const CSV_HEADERS = ['Name', 'Category', 'Supplier', 'Branch', 'Qty', 'Min Qty', 'Reorder Level', 'Price', 'Expiry Date'];
+
+    function csvEscape(value) {
+      return '"' + String(value == null ? '' : value).replace(/"/g, '""') + '"';
+    }
+
+    function exportProducts() {
+      const products = getProducts();
+      const lines = [CSV_HEADERS.map(csvEscape).join(',')];
+      products.forEach((p) => {
+        lines.push(CSV_COLUMNS.map((key) => csvEscape(p[key])).join(','));
+      });
+      const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'hugeworth-inventory-' + new Date().toISOString().slice(0, 10) + '.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      HW.logActivity('Exported inventory to CSV (' + products.length + ' products)');
+    }
+
+    function parseCsvLine(line) {
+      const fields = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (inQuotes) {
+          if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+          else if (ch === '"') { inQuotes = false; }
+          else { current += ch; }
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ',') {
+          fields.push(current);
+          current = '';
+        } else {
+          current += ch;
+        }
+      }
+      fields.push(current);
+      return fields;
+    }
+
+    function parseCsv(text) {
+      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      if (lines.length < 2) return [];
+      const headerCells = parseCsvLine(lines[0]).map((h) => h.trim().toLowerCase());
+      return lines.slice(1).map((line) => {
+        const cells = parseCsvLine(line);
+        const row = {};
+        headerCells.forEach((h, idx) => { row[h] = (cells[idx] || '').trim(); });
+        return row;
+      });
+    }
+
+    function handleImportFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          importProducts(parseCsv(reader.result));
+        } catch (err) {
+          alert('Could not read that CSV file. Please check the format and try again.');
+        }
+        event.target.value = '';
+      };
+      reader.readAsText(file);
+    }
+
+    function importProducts(rows) {
+      if (rows.length === 0) {
+        alert('No rows found in that file.');
+        return;
+      }
+
+      const defaultExpiry = new Date(Date.now() + 365 * 86400000).toISOString().slice(0, 10);
+      const products = getProducts();
+      let imported = 0;
+
+      rows.forEach((row) => {
+        const name = row['name'];
+        if (!name) return;
+        products.push({
+          id: crypto.randomUUID(),
+          name: name,
+          category: row['category'] || 'Other',
+          supplier: row['supplier'] || 'Unknown Supplier',
+          branch: HW.BRANCHES.includes(row['branch']) ? row['branch'] : HW.BRANCHES[0],
+          qty: Number(row['qty']) || 0,
+          minQty: Number(row['min qty'] ?? row['minqty']) || 0,
+          reorderLevel: Number(row['reorder level'] ?? row['reorderlevel']) || 0,
+          price: Number(row['price']) || 0,
+          expiryDate: row['expiry date'] || row['expirydate'] || defaultExpiry,
+        });
+        imported++;
+      });
+
+      saveProducts(products);
+      HW.logActivity('Imported ' + imported + ' products from CSV');
+      alert('Imported ' + imported + ' of ' + rows.length + ' rows into inventory.');
+      renderTable();
+      renderBranchOverview();
+      renderReorderBanner();
+    }
+
+    function seedDemoProducts() {
+      const existing = getProducts();
+      if (existing.length > 0) return;
+
+      const seed = [
+        { name: 'Paracetamol 500mg', category: 'Analgesics', supplier: 'Emzor Pharmaceuticals', qty: 120, minQty: 30, reorderLevel: 50, price: 350, expiryDate: '2027-06-30', branch: 'ODA Road' },
+        { name: 'Amoxicillin 500mg', category: 'Antibiotics', supplier: 'Fidson Healthcare', qty: 18, minQty: 25, reorderLevel: 40, price: 900, expiryDate: '2027-01-15', branch: 'ODA Road' },
+        { name: 'Coartem (Artemether/Lumefantrine)', category: 'Antimalarials', supplier: 'May & Baker', qty: 40, minQty: 15, reorderLevel: 25, price: 1800, expiryDate: '2026-11-20', branch: 'Igbatoro' },
+        { name: 'Metformin 500mg', category: 'Antidiabetics', supplier: 'GSK Nigeria', qty: 8, minQty: 20, reorderLevel: 30, price: 1200, expiryDate: '2027-03-10', branch: 'ODA Road' },
+        { name: 'Vitamin C 1000mg', category: 'Vitamins & Supplements', supplier: 'Juhel Nigeria', qty: 75, minQty: 20, reorderLevel: 35, price: 500, expiryDate: '2026-09-05', branch: 'Igbatoro' },
+        { name: 'Amlodipine 5mg', category: 'Antihypertensives', supplier: 'Fidson Healthcare', qty: 55, minQty: 15, reorderLevel: 30, price: 950, expiryDate: '2027-08-01', branch: 'Igbatoro' },
+      ];
+
+      const withIds = seed.map((p) => Object.assign({ id: crypto.randomUUID() }, p));
+      saveProducts(withIds);
+    }
+
+    function statusFor(p) {
+      const daysToExpiry = Math.floor((new Date(p.expiryDate) - new Date()) / 86400000);
+      if (daysToExpiry < 365) return { label: 'Expiring Soon', cls: 'danger' };
+      if (p.qty <= p.minQty) return { label: 'Low Stock', cls: 'warn' };
+      if (p.qty <= p.reorderLevel) return { label: 'Reorder Soon', cls: 'info' };
+      return { label: 'OK', cls: 'ok' };
+    }
+
+    function renderTable() {
+      const branchFilter = document.getElementById('branchFilter').value;
+      const products = getProducts().filter((p) => !branchFilter || p.branch === branchFilter);
+      const body = document.getElementById('productBody');
+      const table = body.closest('table');
+      const emptyState = document.getElementById('emptyState');
+
+      if (products.length === 0) {
+        table.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+      table.style.display = '';
+      emptyState.style.display = 'none';
+
+      body.innerHTML = products.map((p) => {
+        const status = statusFor(p);
+        return '<tr>' +
+          '<td>' + p.name + '</td>' +
+          '<td>' + p.branch + '</td>' +
+          '<td>' + p.category + '</td>' +
+          '<td>' + p.supplier + '</td>' +
+          '<td>' + p.qty + '</td>' +
+          '<td>₦' + Number(p.price).toLocaleString() + '</td>' +
+          '<td>' + new Date(p.expiryDate).toLocaleDateString() + '</td>' +
+          '<td><span class="badge ' + status.cls + '">' + status.label + '</span></td>' +
+          '<td>' +
+            '<button class="icon-btn" title="Restock" onclick="restock(\'' + p.id + '\')">➕</button>' +
+            '<button class="icon-btn" title="Edit" onclick="openEditModal(\'' + p.id + '\')">✏️</button>' +
+            '<button class="icon-btn" title="Delete" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function renderBranchOverview() {
+      const products = getProducts();
+      const [branch1, branch2] = HW.BRANCHES;
+      document.getElementById('branchOverviewHead1').textContent = branch1;
+      document.getElementById('branchOverviewHead2').textContent = branch2;
+
+      const byName = {};
+      products.forEach((p) => {
+        if (!byName[p.name]) byName[p.name] = {};
+        byName[p.name][p.branch] = (byName[p.name][p.branch] || 0) + p.qty;
+      });
+
+      const rows = Object.keys(byName).map((name) => {
+        const q1 = byName[name][branch1] || 0;
+        const q2 = byName[name][branch2] || 0;
+        return '<tr>' +
+          '<td>' + name + '</td>' +
+          '<td>' + q1 + '</td>' +
+          '<td>' + q2 + '</td>' +
+          '<td><strong>' + (q1 + q2) + '</strong></td>' +
+        '</tr>';
+      });
+
+      document.getElementById('branchOverviewBody').innerHTML = rows.join('') || '<tr><td colspan="4" class="empty-cell">No stock data yet.</td></tr>';
+    }
+
+    function renderReorderBanner() {
+      const products = getProducts();
+      const reorderDue = products.filter((p) => p.qty <= p.reorderLevel && p.qty > p.minQty);
+      const banner = document.getElementById('reorderBanner');
+      if (reorderDue.length === 0) {
+        banner.innerHTML = '';
+        return;
+      }
+      banner.innerHTML = '<div class="banner info"><strong>🔔 Reorder Level Notice</strong>' +
+        reorderDue.map((p) => p.name + ' (' + p.branch + ') has hit its reorder level — ' + p.qty + ' left. Consider placing a supplier order.').join('<br/>') +
+        '</div>';
+    }
+
+    function openAddModal() {
+      document.getElementById('modalTitle').textContent = 'Add Product';
+      document.getElementById('productForm').reset();
+      document.getElementById('productId').value = '';
+      document.getElementById('modalOverlay').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const p = getProducts().find((x) => x.id === id);
+      if (!p) return;
+      document.getElementById('modalTitle').textContent = 'Edit Product';
+      document.getElementById('productId').value = p.id;
+      document.getElementById('fieldName').value = p.name;
+      document.getElementById('fieldCategory').value = p.category;
+      document.getElementById('fieldSupplier').value = p.supplier;
+      document.getElementById('fieldQty').value = p.qty;
+      document.getElementById('fieldMinQty').value = p.minQty;
+      document.getElementById('fieldReorderLevel').value = p.reorderLevel;
+      document.getElementById('fieldBranch').value = p.branch;
+      document.getElementById('fieldPrice').value = p.price;
+      document.getElementById('fieldExpiry').value = p.expiryDate;
+      document.getElementById('modalOverlay').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.add('hidden');
+    }
+
+    function saveProduct(event) {
+      event.preventDefault();
+      const id = document.getElementById('productId').value;
+      const products = getProducts();
+
+      const data = {
+        name: document.getElementById('fieldName').value.trim(),
+        category: document.getElementById('fieldCategory').value,
+        supplier: document.getElementById('fieldSupplier').value.trim(),
+        qty: Number(document.getElementById('fieldQty').value),
+        minQty: Number(document.getElementById('fieldMinQty').value),
+        reorderLevel: Number(document.getElementById('fieldReorderLevel').value),
+        branch: document.getElementById('fieldBranch').value,
+        price: Number(document.getElementById('fieldPrice').value),
+        expiryDate: document.getElementById('fieldExpiry').value,
+      };
+
+      if (id) {
+        const idx = products.findIndex((p) => p.id === id);
+        products[idx] = Object.assign({ id }, data);
+        HW.logActivity('Updated product "' + data.name + '"');
+      } else {
+        data.id = crypto.randomUUID();
+        products.push(data);
+        HW.logActivity('Added product "' + data.name + '"');
+      }
+
+      saveProducts(products);
+      closeModal();
+      renderTable();
+      renderBranchOverview();
+      renderReorderBanner();
+    }
+
+    function deleteProduct(id) {
+      const products = getProducts();
+      const p = products.find((x) => x.id === id);
+      if (!p) return;
+      if (!confirm('Remove "' + p.name + '" from inventory?')) return;
+      saveProducts(products.filter((x) => x.id !== id));
+      HW.logActivity('Removed product "' + p.name + '"');
+      renderTable();
+      renderBranchOverview();
+      renderReorderBanner();
+    }
+
+    function restock(id) {
+      const products = getProducts();
+      const p = products.find((x) => x.id === id);
+      if (!p) return;
+      const amountStr = prompt('How many units of "' + p.name + '" came in?', '10');
+      const amount = Number(amountStr);
+      if (!amountStr || isNaN(amount) || amount <= 0) return;
+      p.qty += amount;
+      saveProducts(products);
+      HW.logActivity('Restocked ' + amount + ' units of "' + p.name + '"');
+      renderTable();
+      renderBranchOverview();
+      renderReorderBanner();
+    }
+  </script>
+</body>
+</html>

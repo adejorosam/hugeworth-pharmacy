@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Staff</div>
+          <div class="page-sub">Manage staff logins and roles</div>
+        </div>
+        <span class="demo-badge">Demo Preview</span>
+      </div>
+      <div class="content">
+        <div class="content-header">
+          <div class="section-heading" style="margin-bottom:0;">Staff Accounts</div>
+          <button class="btn-gold" onclick="openAddModal()">+ Add Staff</button>
+        </div>
+
+        <div class="card">
+          <table class="hw-table">
+            <thead><tr><th>Name</th><th>Role</th><th></th></tr></thead>
+            <tbody id="staffBody"></tbody>
+          </table>
+        </div>
+        <p style="font-size:0.78rem; color:#999; margin-top:14px;">This is a demo — staff log in by picking their name on the login screen, no password required. At least one Admin must always remain.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT MODAL -->
+  <div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal-card">
+      <h3 id="modalTitle">Add Staff</h3>
+      <form id="staffForm" onsubmit="saveStaffMember(event)">
+        <input type="hidden" id="staffId" />
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="fieldName" required placeholder="e.g. Ngozi Eze" />
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select id="fieldRole">
+            <option value="admin">Admin</option>
+            <option value="pharmacist">Pharmacist</option>
+            <option value="cashier">Cashier</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Save Staff</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const session = HW.renderShell('staff');
+    if (session) {
+      if (session.role !== 'admin') {
+        window.location.href = 'dashboard.html';
+      } else {
+        renderTable();
+      }
+    }
+
+    function renderTable() {
+      const staff = HW.getStaff();
+      document.getElementById('staffBody').innerHTML = staff.map((s) =>
+        '<tr>' +
+          '<td>' + s.name + (s.id === session.id ? ' <span class="badge info">You</span>' : '') + '</td>' +
+          '<td><span class="role-pill ' + s.role + '">' + s.role + '</span></td>' +
+          '<td>' +
+            '<button class="icon-btn" title="Edit" onclick="openEditModal(\'' + s.id + '\')">✏️</button>' +
+            '<button class="icon-btn" title="Remove" onclick="deleteStaffMember(\'' + s.id + '\')">🗑️</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    function openAddModal() {
+      document.getElementById('modalTitle').textContent = 'Add Staff';
+      document.getElementById('staffForm').reset();
+      document.getElementById('staffId').value = '';
+      document.getElementById('modalOverlay').classList.remove('hidden');
+    }
+
+    function openEditModal(id) {
+      const s = HW.getStaff().find((x) => x.id === id);
+      if (!s) return;
+      document.getElementById('modalTitle').textContent = 'Edit Staff';
+      document.getElementById('staffId').value = s.id;
+      document.getElementById('fieldName').value = s.name;
+      document.getElementById('fieldRole').value = s.role;
+      document.getElementById('modalOverlay').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.add('hidden');
+    }
+
+    function countAdmins(staff, excludingId) {
+      return staff.filter((s) => s.role === 'admin' && s.id !== excludingId).length;
+    }
+
+    function saveStaffMember(event) {
+      event.preventDefault();
+      const id = document.getElementById('staffId').value;
+      const staff = HW.getStaff();
+      const name = document.getElementById('fieldName').value.trim();
+      const role = document.getElementById('fieldRole').value;
+
+      if (id) {
+        const existing = staff.find((s) => s.id === id);
+        if (existing.role === 'admin' && role !== 'admin' && countAdmins(staff, id) === 0) {
+          alert('Cannot change role: at least one Admin must remain.');
+          return;
+        }
+        existing.name = name;
+        existing.role = role;
+        HW.logActivity('Updated staff member "' + name + '"');
+      } else {
+        staff.push({ id: crypto.randomUUID(), name, role });
+        HW.logActivity('Added staff member "' + name + '" (' + role + ')');
+      }
+
+      HW.saveStaff(staff);
+      closeModal();
+      renderTable();
+    }
+
+    function deleteStaffMember(id) {
+      const staff = HW.getStaff();
+      const s = staff.find((x) => x.id === id);
+      if (!s) return;
+      if (s.role === 'admin' && countAdmins(staff, id) === 0) {
+        alert('Cannot remove the last remaining Admin.');
+        return;
+      }
+      if (!confirm('Remove "' + s.name + '" from staff?')) return;
+      HW.saveStaff(staff.filter((x) => x.id !== id));
+      HW.logActivity('Removed staff member "' + s.name + '"');
+      renderTable();
+    }
+  </script>
+</body>
+</html>

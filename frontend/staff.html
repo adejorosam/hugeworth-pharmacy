@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Staff — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Staff</div>
+          <div class="page-sub">Manage staff logins and roles</div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="content-header">
+          <div class="section-heading" style="margin-bottom:0;">Staff Accounts</div>
+          <button class="btn-gold" onclick="openAddModal()">+ Add Staff</button>
+        </div>
+
+        <div class="card">
+          <table class="hw-table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th></th></tr></thead>
+            <tbody id="staffBody"></tbody>
+          </table>
+        </div>
+        <p style="font-size:0.78rem; color:#999; margin-top:14px;">New staff log in with the email + password you set here. At least one active Admin must always remain.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal-card">
+      <h3 id="modalTitle">Add Staff</h3>
+      <form id="staffForm" onsubmit="saveStaffMember(event)">
+        <input type="hidden" id="staffId" />
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="fieldName" required placeholder="e.g. Ngozi Eze" />
+        </div>
+        <div class="field" id="emailField">
+          <label>Email</label>
+          <input type="email" id="fieldEmail" required placeholder="e.g. ngozi@hugeworthpharmacy.com" />
+        </div>
+        <div class="field" id="passwordField">
+          <label>Password</label>
+          <input type="password" id="fieldPassword" minlength="6" placeholder="At least 6 characters" />
+        </div>
+        <div class="field">
+          <label>Role</label>
+          <select id="fieldRole">
+            <option value="admin">Admin</option>
+            <option value="pharmacist">Pharmacist</option>
+            <option value="cashier">Cashier</option>
+          </select>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Save Staff</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    let session = null;
+
+    (async () => {
+      session = HW.renderShell('staff');
+      if (!session) return;
+      if (session.role !== 'admin') { window.location.href = 'dashboard.html'; return; }
+      await renderTable();
+    })();
+
+    async function renderTable() {
+      const staffList = await HW.apiFetch('/staff');
+      document.getElementById('staffBody').innerHTML = staffList.map((s) =>
+        '<tr>' +
+          '<td>' + s.name + (s.id === session.id ? ' <span class="badge info">You</span>' : '') + '</td>' +
+          '<td>' + s.email + '</td>' +
+          '<td><span class="role-pill ' + s.role + '">' + s.role + '</span></td>' +
+          '<td>' + (s.isActive ? '<span class="badge ok">Active</span>' : '<span class="badge danger">Inactive</span>') + '</td>' +
+          '<td>' +
+            '<button class="icon-btn" title="Edit" onclick="openEditModal(\'' + s.id + '\')">✏️</button>' +
+            '<button class="icon-btn" title="Reset Password" onclick="resetPassword(\'' + s.id + '\', \'' + s.name.replace(/'/g, "\\'") + '\')">🔑</button>' +
+            '<button class="icon-btn" title="Remove" onclick="deleteStaffMember(\'' + s.id + '\')">🗑️</button>' +
+          '</td>' +
+        '</tr>'
+      ).join('');
+    }
+
+    async function resetPassword(id, name) {
+      if (!confirm('Reset the password for ' + name + '? Their current password will stop working immediately.')) return;
+      try {
+        const { tempPassword } = await HW.apiFetch('/staff/' + id + '/reset-password', { method: 'PATCH' });
+        alert('Temporary password for ' + name + ':\n\n' + tempPassword + '\n\nShare this with them now — it will not be shown again. They should change it after logging in.');
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function openAddModal() {
+      document.getElementById('modalTitle').textContent = 'Add Staff';
+      document.getElementById('staffForm').reset();
+      document.getElementById('staffId').value = '';
+      document.getElementById('fieldEmail').disabled = false;
+      document.getElementById('fieldPassword').required = true;
+      document.getElementById('passwordField').style.display = 'block';
+      document.getElementById('modalOverlay').classList.remove('hidden');
+    }
+
+    async function openEditModal(id) {
+      const staffList = await HW.apiFetch('/staff');
+      const s = staffList.find((x) => x.id === id);
+      if (!s) return;
+      document.getElementById('modalTitle').textContent = 'Edit Staff';
+      document.getElementById('staffId').value = s.id;
+      document.getElementById('fieldName').value = s.name;
+      document.getElementById('fieldEmail').value = s.email;
+      document.getElementById('fieldEmail').disabled = true;
+      document.getElementById('fieldRole').value = s.role;
+      document.getElementById('fieldPassword').required = false;
+      document.getElementById('passwordField').style.display = 'none';
+      document.getElementById('modalOverlay').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.add('hidden');
+    }
+
+    async function saveStaffMember(event) {
+      event.preventDefault();
+      const id = document.getElementById('staffId').value;
+      const name = document.getElementById('fieldName').value.trim();
+      const role = document.getElementById('fieldRole').value;
+
+      try {
+        if (id) {
+          await HW.apiFetch('/staff/' + id, { method: 'PATCH', body: JSON.stringify({ name, role }) });
+        } else {
+          const email = document.getElementById('fieldEmail').value.trim();
+          const password = document.getElementById('fieldPassword').value;
+          await HW.apiFetch('/staff', { method: 'POST', body: JSON.stringify({ name, email, password, role }) });
+        }
+        closeModal();
+        await renderTable();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function deleteStaffMember(id) {
+      if (!confirm('Remove this staff member?')) return;
+      try {
+        await HW.apiFetch('/staff/' + id, { method: 'DELETE' });
+        await renderTable();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+  </script>
+</body>
+</html>

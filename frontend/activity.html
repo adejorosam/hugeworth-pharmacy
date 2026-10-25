@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Log — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Activity Log</div>
+          <div class="page-sub" id="pageSub"></div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <table class="hw-table" id="activityTable">
+            <thead><tr><th>When</th><th>Staff</th><th>Role</th><th>Action</th></tr></thead>
+            <tbody id="activityBody"></tbody>
+          </table>
+          <div class="placeholder-card" id="emptyState" style="display:none;">
+            <div class="ph-icon">📝</div>
+            <h3>No activity yet</h3>
+            <p>Actions taken across the system will show up here as they happen.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    (async () => {
+      const staff = HW.renderShell('activity');
+      if (!staff) return;
+
+      document.getElementById('pageSub').textContent = staff.role === 'admin'
+        ? 'Showing activity for all staff'
+        : 'Showing your activity only';
+
+      const log = await HW.apiFetch('/activity');
+      const body = document.getElementById('activityBody');
+      const emptyState = document.getElementById('emptyState');
+      const table = document.getElementById('activityTable');
+
+      if (log.length === 0) {
+        table.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+
+      body.innerHTML = log.map((entry) =>
+        '<tr>' +
+          '<td>' + HW.timeAgo(entry.createdAt) + '</td>' +
+          '<td>' + (entry.staff ? entry.staff.name : 'Unknown') + '</td>' +
+          '<td>' + (entry.staff ? '<span class="role-pill ' + entry.staff.role + '">' + entry.staff.role + '</span>' : '—') + '</td>' +
+          '<td>' + entry.action + '</td>' +
+        '</tr>'
+      ).join('');
+    })();
+  </script>
+</body>
+</html>

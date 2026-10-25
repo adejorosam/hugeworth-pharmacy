@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sales / POS — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .pos-grid { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+    .product-pick { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.06); margin-bottom: 10px; background: var(--white); }
+    .product-pick.blocked { opacity: 0.55; }
+    .product-pick .pp-name { font-weight: 700; font-size: 0.92rem; color: var(--navy-dark); }
+    .product-pick .pp-meta { font-size: 0.78rem; color: #888; margin-top: 2px; }
+    .cart-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(0,0,0,0.05); }
+    .cart-item:last-child { border-bottom: none; }
+    .cart-item .ci-name { font-size: 0.88rem; font-weight: 600; color: var(--navy-dark); }
+    .cart-item .ci-sub { font-size: 0.76rem; color: #888; }
+    .qty-controls { display: flex; align-items: center; gap: 8px; }
+    .qty-controls button { width: 24px; height: 24px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.15); background: var(--white); cursor: pointer; font-family: inherit; }
+    .cart-total-row { display: flex; justify-content: space-between; padding-top: 14px; margin-top: 10px; border-top: 2px solid rgba(0,0,0,0.08); font-weight: 800; color: var(--navy-dark); }
+    .search-input { width: 100%; margin-bottom: 16px; padding: 11px 14px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.12); font-family: inherit; font-size: 0.9rem; outline: none; }
+    .search-input:focus { border-color: var(--gold); }
+    .receipt-line { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0; color: #555; }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Sales / POS</div>
+          <div class="page-sub">Ring up a sale and track the transaction</div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="pos-grid">
+          <div>
+            <div class="card">
+              <input type="text" class="search-input" id="searchInput" placeholder="Search products by name..." oninput="renderProductList()" />
+              <div id="productList"></div>
+              <div class="placeholder-card" id="noProducts" style="display:none;">
+                <div class="ph-icon">📦</div>
+                <h3>No products in inventory</h3>
+                <p>Add products from the Inventory page before ringing up a sale.</p>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="card">
+              <div class="section-heading">Current Sale</div>
+              <div id="cartItems"></div>
+              <div id="cartEmpty" class="empty-cell" style="padding: 12px 0;">No items added yet.</div>
+              <div class="receipt-line" id="subtotalRow" style="display:none;"><span>Subtotal</span><span id="cartSubtotal">₦0</span></div>
+              <div class="receipt-line" id="discountRow" style="display:none; color:#2e9a5a;"><span id="discountLabel">Discount</span><span id="discountAmount"></span></div>
+              <div class="cart-total-row" id="cartTotalRow" style="display:none;">
+                <span>Total</span>
+                <span id="cartTotal">₦0</span>
+              </div>
+              <button class="btn-outline" style="width:100%; margin-top:12px;" id="discountBtn" onclick="applyDiscount()" disabled>% Apply Discount</button>
+              <button class="btn-gold" style="width:100%; margin-top:8px;" id="checkoutBtn" onclick="checkout()" disabled>Complete Sale</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="receiptOverlay">
+    <div class="modal-card">
+      <h3>Sale Complete ✅</h3>
+      <p style="font-size:0.85rem; color:#888; margin-bottom:14px;">Invoice <strong id="receiptInvoice"></strong></p>
+      <div id="receiptLines"></div>
+      <div class="cart-total-row"><span>Total</span><span id="receiptTotal">₦0</span></div>
+      <div class="modal-actions">
+        <button class="btn-outline" onclick="printReceipt()">🖨️ Print Receipt</button>
+        <button class="btn-gold" onclick="closeReceipt()">New Sale</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    let staff = null;
+    let products = [];
+    let cart = [];
+    let lastSale = null;
+    let discountPct = 0;
+    let discountPin = null;
+
+    (async () => {
+      staff = HW.renderShell('pos');
+      if (!staff) return;
+      await loadProducts();
+    })();
+
+    async function loadProducts() {
+      products = await HW.apiFetch('/inventory');
+      renderProductList();
+    }
+
+    function renderProductList() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const filtered = products.filter((p) => p.name.toLowerCase().includes(query));
+      const list = document.getElementById('productList');
+      const noProducts = document.getElementById('noProducts');
+
+      if (products.length === 0) {
+        list.style.display = 'none';
+        noProducts.style.display = 'block';
+        return;
+      }
+      list.style.display = '';
+      noProducts.style.display = 'none';
+
+      list.innerHTML = filtered.map((p) => {
+        const outOfStock = p.qty <= 0;
+        const blocked = isExpiringSoon(p);
+        const canOverride = blocked && staff.role === 'admin';
+        const disabled = (blocked && !canOverride) || outOfStock;
+        return '<div class="product-pick' + (disabled ? ' blocked' : '') + '">' +
+          '<div>' +
+            '<div class="pp-name">' + p.name + '</div>' +
+            '<div class="pp-meta">' +
+              '₦' + Number(p.price).toLocaleString() + ' · ' + p.qty + ' in stock' +
+              (blocked ? ' · <span style="color:#c8382f; font-weight:700;">Blocked: expiry &lt; 1yr</span>' : '') +
+              (!blocked && outOfStock ? ' · <span style="color:#c8382f; font-weight:700;">Out of stock</span>' : '') +
+            '</div>' +
+          '</div>' +
+          (canOverride
+            ? '<button class="btn-outline" style="border-color:#c8382f; color:#c8382f;" onclick="addToCart(\'' + p.id + '\', true)">Override &amp; Add</button>'
+            : '<button class="btn-outline" onclick="addToCart(\'' + p.id + '\')" ' + (disabled ? 'disabled' : '') + '>Add</button>') +
+        '</div>';
+      }).join('') || '<p class="empty-cell">No matches.</p>';
+    }
+
+    function isExpiringSoon(p) {
+      const daysToExpiry = Math.floor((new Date(p.expiryDate) - new Date()) / 86400000);
+      return daysToExpiry < 365;
+    }
+
+    function addToCart(id, overrideExpiry) {
+      const product = products.find((p) => p.id === id);
+      if (!product) return;
+      const existing = cart.find((c) => c.id === id);
+      if (existing) {
+        if (existing.qty < product.qty) existing.qty += 1;
+      } else {
+        cart.push({ id: product.id, name: product.name, price: product.price, qty: 1, maxQty: product.qty, overrideExpiry: !!overrideExpiry });
+      }
+      renderCart();
+    }
+
+    function changeCartQty(id, delta) {
+      const item = cart.find((c) => c.id === id);
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) cart = cart.filter((c) => c.id !== id);
+      else if (item.qty > item.maxQty) item.qty = item.maxQty;
+      renderCart();
+    }
+
+    function renderCart() {
+      const container = document.getElementById('cartItems');
+      const emptyMsg = document.getElementById('cartEmpty');
+      const totalRow = document.getElementById('cartTotalRow');
+      const subtotalRow = document.getElementById('subtotalRow');
+      const discountRow = document.getElementById('discountRow');
+      const checkoutBtn = document.getElementById('checkoutBtn');
+      const discountBtn = document.getElementById('discountBtn');
+
+      if (cart.length === 0) {
+        container.innerHTML = '';
+        emptyMsg.style.display = 'block';
+        totalRow.style.display = 'none';
+        subtotalRow.style.display = 'none';
+        discountRow.style.display = 'none';
+        checkoutBtn.disabled = true;
+        discountBtn.disabled = true;
+        discountPct = 0;
+        discountPin = null;
+        return;
+      }
+
+      emptyMsg.style.display = 'none';
+      totalRow.style.display = 'flex';
+      checkoutBtn.disabled = false;
+      discountBtn.disabled = false;
+
+      container.innerHTML = cart.map((item) =>
+        '<div class="cart-item">' +
+          '<div>' +
+            '<div class="ci-name">' + item.name + '</div>' +
+            '<div class="ci-sub">₦' + Number(item.price).toLocaleString() + ' each</div>' +
+          '</div>' +
+          '<div class="qty-controls">' +
+            '<button onclick="changeCartQty(\'' + item.id + '\', -1)">−</button>' +
+            '<span>' + item.qty + '</span>' +
+            '<button onclick="changeCartQty(\'' + item.id + '\', 1)">+</button>' +
+          '</div>' +
+        '</div>'
+      ).join('');
+
+      const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+      const discountAmt = Math.round(subtotal * (discountPct / 100));
+      const total = subtotal - discountAmt;
+
+      if (discountPct > 0) {
+        subtotalRow.style.display = 'flex';
+        discountRow.style.display = 'flex';
+        document.getElementById('cartSubtotal').textContent = '₦' + subtotal.toLocaleString();
+        document.getElementById('discountLabel').textContent = 'Discount (' + discountPct + '%)';
+        document.getElementById('discountAmount').textContent = '-₦' + discountAmt.toLocaleString();
+      } else {
+        subtotalRow.style.display = 'none';
+        discountRow.style.display = 'none';
+      }
+
+      document.getElementById('cartTotal').textContent = '₦' + total.toLocaleString();
+    }
+
+    async function applyDiscount() {
+      const pctStr = prompt('Discount percentage to apply (1-100):', '10');
+      if (pctStr === null) return;
+      const pct = Number(pctStr);
+      if (isNaN(pct) || pct <= 0 || pct > 100) { alert('Enter a valid percentage between 1 and 100.'); return; }
+
+      const pin = HW.promptManagerPin(staff, 'apply a ' + pct + '% discount');
+      if (staff.role !== 'admin' && !pin) return;
+
+      discountPct = pct;
+      discountPin = pin;
+      renderCart();
+    }
+
+    async function checkout() {
+      if (cart.length === 0) return;
+      const checkoutBtn = document.getElementById('checkoutBtn');
+      checkoutBtn.disabled = true;
+      checkoutBtn.textContent = 'Processing...';
+
+      try {
+        const sale = await HW.apiFetch('/sales', {
+          method: 'POST',
+          body: JSON.stringify({
+            items: cart.map((c) => ({ productId: c.id, qty: c.qty, overrideExpiry: c.overrideExpiry })),
+            discountPct: discountPct > 0 ? discountPct : undefined,
+            managerPin: discountPin || undefined,
+          }),
+        });
+        lastSale = sale;
+
+        document.getElementById('receiptInvoice').textContent = sale.invoiceNo;
+        document.getElementById('receiptTotal').textContent = '₦' + Number(sale.total).toLocaleString();
+        document.getElementById('receiptLines').innerHTML = sale.items.map((item) =>
+          '<div class="receipt-line"><span>' + item.qty + ' × ' + item.productName + '</span><span>₦' + (item.qty * item.price).toLocaleString() + '</span></div>'
+        ).join('');
+        document.getElementById('receiptOverlay').classList.remove('hidden');
+
+        cart = [];
+        discountPct = 0;
+        discountPin = null;
+        renderCart();
+        await loadProducts();
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        checkoutBtn.disabled = false;
+        checkoutBtn.textContent = 'Complete Sale';
+      }
+    }
+
+    function closeReceipt() {
+      document.getElementById('receiptOverlay').classList.add('hidden');
+    }
+
+    function printReceipt() {
+      if (!lastSale) return;
+      const s = lastSale;
+      const itemLines = s.items.map((item) =>
+        item.productName + '\n  ' + item.qty + ' x ' + Number(item.price).toLocaleString() + ' = ' + (item.qty * item.price).toLocaleString()
+      ).join('\n');
+
+      const html =
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt ' + s.invoiceNo + '</title>' +
+        '<style>' +
+          'body{font-family:monospace; width:280px; margin:0 auto; padding:16px; font-size:12px; color:#111;}' +
+          'h2{text-align:center; font-size:14px; margin:0 0 2px;}' +
+          '.center{text-align:center;}' +
+          'hr{border:none; border-top:1px dashed #333; margin:8px 0;}' +
+          'pre{white-space:pre-wrap; margin:0;}' +
+          '.total{font-weight:bold; font-size:13px;}' +
+          '.row{display:flex; justify-content:space-between;}' +
+        '</style></head><body>' +
+        '<h2>HUGEWORTH PHARMACY</h2>' +
+        '<div class="center">ODA Road, Akure, Ondo State<br/>+234 706 104 3635</div>' +
+        '<hr/>' +
+        '<div class="row"><span>Invoice</span><span>' + s.invoiceNo + '</span></div>' +
+        '<div class="row"><span>Date</span><span>' + new Date(s.createdAt).toLocaleString() + '</span></div>' +
+        '<div class="row"><span>Cashier</span><span>' + staff.name + '</span></div>' +
+        '<hr/>' +
+        '<pre>' + itemLines + '</pre>' +
+        '<hr/>' +
+        '<div class="row total"><span>TOTAL</span><span>₦' + Number(s.total).toLocaleString() + '</span></div>' +
+        '<hr/>' +
+        '<div class="center">Thank you for shopping with us!<br/>Get well soon.</div>' +
+        '</body></html>';
+
+      const win = window.open('', '_blank', 'width=340,height=600');
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      win.print();
+    }
+  </script>
+</body>
+</html>

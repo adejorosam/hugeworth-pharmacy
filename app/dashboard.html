@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub" id="welcomeSub"></div>
+        </div>
+        <span class="demo-badge">Demo Preview</span>
+      </div>
+      <div class="content">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-icon">📦</span>
+            <div class="stat-value" id="statInventory">0</div>
+            <div class="stat-label">Products in Stock</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🧾</span>
+            <div class="stat-value" id="statSalesToday">0</div>
+            <div class="stat-label">Sales Today</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⚠️</span>
+            <div class="stat-value" id="statLowStock">0</div>
+            <div class="stat-label">Low Stock Alerts</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">📝</span>
+            <div class="stat-value" id="statActivity">0</div>
+            <div class="stat-label">Actions Logged</div>
+          </div>
+        </div>
+
+        <div class="card" id="lowStockBanner" style="display:none; margin-bottom:20px; border-color: rgba(245,166,35,0.4);">
+          <div class="section-heading" style="margin-bottom:10px;">⚠️ Low Stock Alert</div>
+          <div id="lowStockList" style="font-size:0.88rem; color:#555; line-height:1.7;"></div>
+        </div>
+
+        <div class="card" id="refillBanner" style="display:none; margin-bottom:20px; border-color: rgba(26,37,96,0.25);">
+          <div class="section-heading" style="margin-bottom:10px;">🔔 Refills Due Soon</div>
+          <div id="refillList" style="font-size:0.88rem; color:#555; line-height:1.7;"></div>
+        </div>
+
+        <div class="card welcome-card">
+          <h2>Welcome back 👋</h2>
+          <p>This is a demo build of the Hugeworth Pharmacy Management System, covering Phase 1 of the proposal (Accounts &amp; Roles, Inventory, Sales/POS, Activity Log). Use the sidebar to explore each area — data you enter is stored locally in this browser so you can try things freely.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const session = HW.renderShell('dashboard');
+    if (session) {
+      document.getElementById('welcomeSub').textContent = 'Signed in as ' + session.name + ' (' + session.roleLabel + ')';
+
+      const inventory = JSON.parse(localStorage.getItem(HW.keys.INVENTORY_KEY) || '[]');
+      const sales = JSON.parse(localStorage.getItem(HW.keys.SALES_KEY) || '[]');
+      const activity = JSON.parse(localStorage.getItem(HW.keys.ACTIVITY_KEY) || '[]');
+
+      const today = new Date().toDateString();
+      const salesToday = sales.filter((s) => new Date(s.timestamp).toDateString() === today).length;
+      const lowStockItems = inventory.filter((p) => p.qty <= p.minQty);
+
+      document.getElementById('statInventory').textContent = inventory.length;
+      document.getElementById('statSalesToday').textContent = salesToday;
+      document.getElementById('statLowStock').textContent = lowStockItems.length;
+      document.getElementById('statActivity').textContent = activity.length;
+
+      if (lowStockItems.length > 0 && session.role !== 'cashier') {
+        document.getElementById('lowStockBanner').style.display = 'block';
+        document.getElementById('lowStockList').innerHTML = lowStockItems.map((p) =>
+          '<div>• <strong>' + p.name + '</strong> — ' + p.qty + ' left (min ' + p.minQty + ')</div>'
+        ).join('');
+      }
+
+      if (session.role !== 'cashier') {
+        const customers = JSON.parse(localStorage.getItem(HW.keys.CUSTOMERS_KEY) || '[]');
+        const dueSoon = customers.filter((c) => Math.ceil((new Date(c.refillDue) - new Date()) / 86400000) <= 7);
+        if (dueSoon.length > 0) {
+          document.getElementById('refillBanner').style.display = 'block';
+          document.getElementById('refillList').innerHTML = dueSoon.map((c) =>
+            '<div>• <strong>' + c.name + '</strong> — ' + c.medication + ' due ' + new Date(c.refillDue).toLocaleDateString() + '</div>'
+          ).join('');
+        }
+      }
+    }
+  </script>
+</body>
+</html>

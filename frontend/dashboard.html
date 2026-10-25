@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub" id="welcomeSub"></div>
+        </div>
+      </div>
+      <div class="content">
+        <div class="stat-grid">
+          <div class="stat-card">
+            <span class="stat-icon">📦</span>
+            <div class="stat-value" id="statInventory">—</div>
+            <div class="stat-label">Products in Stock</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">🧾</span>
+            <div class="stat-value" id="statSalesToday">—</div>
+            <div class="stat-label">Sales Today</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">💰</span>
+            <div class="stat-value" id="statRevenueToday">—</div>
+            <div class="stat-label">Revenue Today</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">📝</span>
+            <div class="stat-value" id="statActivity">—</div>
+            <div class="stat-label">Actions Logged</div>
+          </div>
+        </div>
+
+        <div class="card" id="lowStockBanner" style="display:none; margin-bottom:20px; border-color: rgba(245,166,35,0.4);">
+          <div class="section-heading" style="margin-bottom:10px;">⚠️ Low Stock Alert</div>
+          <div id="lowStockList" style="font-size:0.88rem; color:#555; line-height:1.7;"></div>
+        </div>
+
+        <div class="card" id="refillBanner" style="display:none; margin-bottom:20px; border-color: rgba(26,37,96,0.25);">
+          <div class="section-heading" style="margin-bottom:10px;">🔔 Refills Due Soon</div>
+          <div id="refillList" style="font-size:0.88rem; color:#555; line-height:1.7;"></div>
+        </div>
+
+        <div class="card welcome-card">
+          <h2>Welcome back 👋</h2>
+          <p>This is the live Hugeworth Pharmacy Management System. Data here is real and persists in the database.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="api.js"></script>
+  <script>
+    (async () => {
+      const staff = HW.renderShell('dashboard');
+      if (!staff) return;
+      document.getElementById('welcomeSub').textContent = 'Signed in as ' + staff.name + ' (' + staff.role + ')';
+
+      try {
+        const [inventory, sales, activity] = await Promise.all([
+          staff.role !== 'cashier' ? HW.apiFetch('/inventory') : Promise.resolve([]),
+          HW.apiFetch('/sales'),
+          HW.apiFetch('/activity'),
+        ]);
+
+        if (staff.role !== 'cashier') document.getElementById('statInventory').textContent = inventory.length;
+        else document.getElementById('statInventory').textContent = 'N/A';
+
+        const today = new Date().toDateString();
+        const salesToday = sales.filter((s) => new Date(s.createdAt).toDateString() === today);
+        const revenueToday = salesToday.reduce((sum, s) => sum + Number(s.total), 0);
+
+        document.getElementById('statSalesToday').textContent = salesToday.length;
+        document.getElementById('statRevenueToday').textContent = '₦' + revenueToday.toLocaleString();
+        document.getElementById('statActivity').textContent = activity.length;
+
+        if (staff.role !== 'cashier') {
+          const lowStockItems = inventory.filter((p) => p.qty <= p.minQty);
+          if (lowStockItems.length > 0) {
+            document.getElementById('lowStockBanner').style.display = 'block';
+            document.getElementById('lowStockList').innerHTML = lowStockItems.map((p) =>
+              '<div>• <strong>' + p.name + '</strong> — ' + p.qty + ' left (min ' + p.minQty + ')</div>'
+            ).join('');
+          }
+
+          const customers = await HW.apiFetch('/customers');
+          const dueSoon = customers.filter((c) => Math.ceil((new Date(c.refillDue) - new Date()) / 86400000) <= 7);
+          if (dueSoon.length > 0) {
+            document.getElementById('refillBanner').style.display = 'block';
+            document.getElementById('refillList').innerHTML = dueSoon.map((c) =>
+              '<div>• <strong>' + c.name + '</strong> — ' + c.medication + ' due ' + new Date(c.refillDue).toLocaleDateString() + '</div>'
+            ).join('');
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  </script>
+</body>
+</html>

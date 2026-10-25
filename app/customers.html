@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Customers — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Customers</div>
+          <div class="page-sub">Medication refill tracking &amp; reminders</div>
+        </div>
+        <span class="demo-badge">Demo Preview</span>
+      </div>
+      <div class="content">
+        <div class="content-header">
+          <div class="section-heading" style="margin-bottom:0;">Customer Directory</div>
+          <button class="btn-gold" onclick="openAddCustomer()">+ Add Customer</button>
+        </div>
+
+        <div class="card">
+          <table class="hw-table">
+            <thead>
+              <tr><th>Customer</th><th>Phone</th><th>Medication</th><th>Refill Due</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="customerBody"></tbody>
+          </table>
+          <div class="placeholder-card" id="emptyState" style="display:none;">
+            <div class="ph-icon">👥</div>
+            <h3>No customers yet</h3>
+            <p>Add a customer and their medication refill schedule to start sending reminders.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD CUSTOMER MODAL -->
+  <div class="modal-overlay hidden" id="modalOverlay">
+    <div class="modal-card">
+      <h3>Add Customer</h3>
+      <form id="customerForm" onsubmit="saveCustomer(event)">
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="fieldName" required placeholder="e.g. Bisi Adewale" />
+        </div>
+        <div class="field">
+          <label>Phone Number</label>
+          <input type="tel" id="fieldPhone" required placeholder="e.g. 08012345678" />
+        </div>
+        <div class="field">
+          <label>Medication</label>
+          <input type="text" id="fieldMedication" required placeholder="e.g. Metformin 500mg" />
+        </div>
+        <div class="field">
+          <label>Refill Due Date</label>
+          <input type="date" id="fieldRefillDue" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-outline" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-gold">Save Customer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const session = HW.renderShell('customers');
+    if (session) {
+      seedDemoCustomers();
+      renderTable();
+    }
+
+    function getCustomers() { return JSON.parse(localStorage.getItem(HW.keys.CUSTOMERS_KEY) || '[]'); }
+    function saveCustomers(list) { localStorage.setItem(HW.keys.CUSTOMERS_KEY, JSON.stringify(list)); }
+
+    function seedDemoCustomers() {
+      if (getCustomers().length > 0) return;
+      const in3Days = new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10);
+      const in20Days = new Date(Date.now() + 20 * 86400000).toISOString().slice(0, 10);
+      const seed = [
+        { name: 'Bisi Adewale', phone: '08012345678', medication: 'Metformin 500mg', refillDue: in3Days },
+        { name: 'Kunle Oyelaran', phone: '08023456789', medication: 'Amlodipine 5mg', refillDue: in20Days },
+      ];
+      saveCustomers(seed.map((c) => Object.assign({ id: crypto.randomUUID(), lastReminded: null }, c)));
+    }
+
+    function daysUntil(dateStr) {
+      return Math.ceil((new Date(dateStr) - new Date()) / 86400000);
+    }
+
+    function renderTable() {
+      const customers = getCustomers();
+      const body = document.getElementById('customerBody');
+      const table = body.closest('table');
+      const emptyState = document.getElementById('emptyState');
+
+      if (customers.length === 0) {
+        table.style.display = 'none';
+        emptyState.style.display = 'block';
+        return;
+      }
+      table.style.display = '';
+      emptyState.style.display = 'none';
+
+      body.innerHTML = customers.map((c) => {
+        const days = daysUntil(c.refillDue);
+        let status = { label: 'Not Due', cls: 'ok' };
+        if (days <= 0) status = { label: 'Overdue', cls: 'danger' };
+        else if (days <= 7) status = { label: 'Due Soon', cls: 'warn' };
+
+        return '<tr>' +
+          '<td>' + c.name + '</td>' +
+          '<td>' + c.phone + '</td>' +
+          '<td>' + c.medication + '</td>' +
+          '<td>' + new Date(c.refillDue).toLocaleDateString() + '</td>' +
+          '<td><span class="badge ' + status.cls + '">' + status.label + '</span></td>' +
+          '<td>' +
+            '<button class="btn-outline" onclick="sendReminder(\'' + c.id + '\')">Send Reminder</button>' +
+            '<button class="icon-btn" title="Delete" onclick="deleteCustomer(\'' + c.id + '\')">🗑️</button>' +
+          '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function openAddCustomer() {
+      document.getElementById('customerForm').reset();
+      document.getElementById('modalOverlay').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.add('hidden');
+    }
+
+    function saveCustomer(event) {
+      event.preventDefault();
+      const customers = getCustomers();
+      customers.push({
+        id: crypto.randomUUID(),
+        name: document.getElementById('fieldName').value.trim(),
+        phone: document.getElementById('fieldPhone').value.trim(),
+        medication: document.getElementById('fieldMedication').value.trim(),
+        refillDue: document.getElementById('fieldRefillDue').value,
+        lastReminded: null,
+      });
+      saveCustomers(customers);
+      HW.logActivity('Added customer "' + customers[customers.length - 1].name + '"');
+      closeModal();
+      renderTable();
+    }
+
+    function deleteCustomer(id) {
+      const customers = getCustomers();
+      const c = customers.find((x) => x.id === id);
+      if (!c) return;
+      if (!confirm('Remove "' + c.name + '" from customers?')) return;
+      saveCustomers(customers.filter((x) => x.id !== id));
+      HW.logActivity('Removed customer "' + c.name + '"');
+      renderTable();
+    }
+
+    function sendReminder(id) {
+      const customers = getCustomers();
+      const c = customers.find((x) => x.id === id);
+      if (!c) return;
+      c.lastReminded = new Date().toISOString();
+      saveCustomers(customers);
+      HW.logActivity('Sent refill reminder to ' + c.name + ' for ' + c.medication);
+      alert('📱 Reminder sent to ' + c.name + ' (' + c.phone + '):\n\n"Hi ' + c.name.split(' ')[0] + ', your refill for ' + c.medication + ' is due. Visit Hugeworth Pharmacy to restock."\n\n(Simulated SMS — a real deployment would send this via SMS/WhatsApp.)');
+      renderTable();
+    }
+  </script>
+</body>
+</html>

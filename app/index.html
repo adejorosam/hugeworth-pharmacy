@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hugeworth PMS — Demo Login</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="login-screen">
+    <div class="login-card">
+      <img src="../hugeworth-logo.jpeg" alt="Hugeworth Pharmacy" />
+      <div class="login-tag">Demo Preview</div>
+      <h1>Hugeworth Pharmacy Management System</h1>
+      <p class="login-sub">Pick a role below to preview the system as that user would see it. No password needed — this is a demo build for feature sign-off.</p>
+
+      <div class="role-list" id="roleList"></div>
+
+      <p class="login-footnote">All data on this preview is local to your browser and resets if you clear site data.<br/>Staff accounts are managed from the Staff page (Admin only).</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const staff = HW.getStaff();
+    document.getElementById('roleList').innerHTML = staff.map((s) =>
+      '<button class="role-btn" onclick="HW.login(\'' + s.id + '\')">' +
+        '<div class="role-avatar">' + s.name.charAt(0) + '</div>' +
+        '<div>' +
+          '<div class="role-name">' + s.name + ' — ' + HW.ROLE_LABELS[s.role] + '</div>' +
+          '<div class="role-desc">' + HW.ROLE_DESCRIPTIONS[s.role] + '</div>' +
+        '</div>' +
+      '</button>'
+    ).join('');
+  </script>
+</body>
+</html>

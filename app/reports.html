@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports — Hugeworth PMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main">
+      <div class="topbar">
+        <div>
+          <div class="page-title">Reports</div>
+          <div class="page-sub">Sales performance, stock movement, and invoice lookup</div>
+        </div>
+        <span class="demo-badge">Demo Preview</span>
+      </div>
+      <div class="content">
+        <div class="tabs no-print">
+          <button class="tab-btn-app active" id="tabBtnSales" onclick="switchTab('sales')">Sales Report</button>
+          <button class="tab-btn-app" id="tabBtnInventory" onclick="switchTab('inventory')">Inventory Report</button>
+          <button class="tab-btn-app" id="tabBtnLookup" onclick="switchTab('lookup')">Invoice Lookup</button>
+          <button class="btn-outline" onclick="window.print()" style="margin-left:auto;">🖨️ Print This Report</button>
+        </div>
+
+        <div class="print-header">
+          <h1>Hugeworth Pharmacy — <span id="printReportTitle">Sales Report</span></h1>
+          <p id="printReportMeta"></p>
+        </div>
+
+        <!-- SALES REPORT -->
+        <div id="panelSales">
+          <div class="filter-row no-print">
+            <label style="font-size:0.82rem; font-weight:700; color:#666;">Period:</label>
+            <select id="periodFilter" onchange="renderSalesReport()">
+              <option value="today">Today</option>
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="all">All Time</option>
+            </select>
+            <button class="btn-outline" onclick="sendEodSummary()" style="margin-left:auto;">📧 Send Today's EOD Summary to Management</button>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <span class="stat-icon">💰</span>
+              <div class="stat-value" id="repRevenue">₦0</div>
+              <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">🧾</span>
+              <div class="stat-value" id="repTxns">0</div>
+              <div class="stat-label">Transactions</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">📊</span>
+              <div class="stat-value" id="repAvg">₦0</div>
+              <div class="stat-label">Avg Sale Value</div>
+            </div>
+            <div class="stat-card">
+              <span class="stat-icon">↩️</span>
+              <div class="stat-value" id="repRefunds">0</div>
+              <div class="stat-label">Refunds Issued</div>
+            </div>
+          </div>
+
+          <div class="section-heading">Top Selling Products</div>
+          <div class="card">
+            <table class="hw-table">
+              <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+              <tbody id="topProductsBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- INVENTORY REPORT -->
+        <div id="panelInventory" style="display:none;">
+          <div class="section-heading">Stock &amp; Movement (last 30 days)</div>
+          <div class="card">
+            <table class="hw-table">
+              <thead>
+                <tr><th>Product</th><th>Branch</th><th>Qty in Stock</th><th>Stock Value</th><th>Movement</th></tr>
+              </thead>
+              <tbody id="inventoryReportBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- INVOICE LOOKUP -->
+        <div id="panelLookup" style="display:none;">
+          <div class="card no-print" style="margin-bottom:20px;">
+            <div class="section-heading">Find a Sale by Invoice Number</div>
+            <div class="filter-row">
+              <input type="text" id="invoiceSearch" placeholder="e.g. INV-12345678" style="flex:1;" />
+              <button class="btn-gold" onclick="lookupInvoice()">Search</button>
+            </div>
+          </div>
+          <div id="lookupResult"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    const session = HW.renderShell('reports');
+    if (session) {
+      renderSalesReport();
+      document.getElementById('printReportMeta').textContent = 'Generated ' + new Date().toLocaleString() + ' by ' + session.name;
+    }
+
+    const TAB_TITLES = { sales: 'Sales Report', inventory: 'Inventory Report', lookup: 'Invoice Lookup' };
+
+    function switchTab(tab) {
+      document.getElementById('panelSales').style.display = tab === 'sales' ? 'block' : 'none';
+      document.getElementById('panelInventory').style.display = tab === 'inventory' ? 'block' : 'none';
+      document.getElementById('panelLookup').style.display = tab === 'lookup' ? 'block' : 'none';
+      document.getElementById('tabBtnSales').classList.toggle('active', tab === 'sales');
+      document.getElementById('tabBtnInventory').classList.toggle('active', tab === 'inventory');
+      document.getElementById('tabBtnLookup').classList.toggle('active', tab === 'lookup');
+      document.getElementById('printReportTitle').textContent = TAB_TITLES[tab];
+      if (tab === 'inventory') renderInventoryReport();
+    }
+
+    function getSales() { return JSON.parse(localStorage.getItem(HW.keys.SALES_KEY) || '[]'); }
+    function getProducts() { return JSON.parse(localStorage.getItem(HW.keys.INVENTORY_KEY) || '[]'); }
+    function saveProducts(list) { localStorage.setItem(HW.keys.INVENTORY_KEY, JSON.stringify(list)); }
+    function saveSales(list) { localStorage.setItem(HW.keys.SALES_KEY, JSON.stringify(list)); }
+
+    function salesInRange(days) {
+      const sales = getSales();
+      if (days === 'all') return sales;
+      if (days === 'today') {
+        const today = new Date().toDateString();
+        return sales.filter((s) => new Date(s.timestamp).toDateString() === today);
+      }
+      const cutoff = Date.now() - Number(days) * 86400000;
+      return sales.filter((s) => new Date(s.timestamp).getTime() >= cutoff);
+    }
+
+    function renderSalesReport() {
+      const period = document.getElementById('periodFilter').value;
+      const sales = salesInRange(period);
+      const active = sales.filter((s) => !s.refunded);
+      const revenue = active.reduce((sum, s) => sum + s.total, 0);
+      const refundCount = sales.filter((s) => s.refunded).length;
+
+      document.getElementById('repRevenue').textContent = '₦' + revenue.toLocaleString();
+      document.getElementById('repTxns').textContent = active.length;
+      document.getElementById('repAvg').textContent = '₦' + (active.length ? Math.round(revenue / active.length).toLocaleString() : '0');
+      document.getElementById('repRefunds').textContent = refundCount;
+
+      const productTotals = {};
+      active.forEach((s) => {
+        s.items.forEach((item) => {
+          if (!productTotals[item.name]) productTotals[item.name] = { qty: 0, revenue: 0 };
+          productTotals[item.name].qty += item.qty;
+          productTotals[item.name].revenue += item.qty * item.price;
+        });
+      });
+      const rows = Object.keys(productTotals)
+        .sort((a, b) => productTotals[b].revenue - productTotals[a].revenue)
+        .map((name) =>
+          '<tr><td>' + name + '</td><td>' + productTotals[name].qty + '</td><td>₦' + productTotals[name].revenue.toLocaleString() + '</td></tr>'
+        );
+      document.getElementById('topProductsBody').innerHTML = rows.join('') || '<tr><td colspan="3" class="empty-cell">No sales in this period yet.</td></tr>';
+    }
+
+    function renderInventoryReport() {
+      const products = getProducts();
+      const last30 = salesInRange('30');
+      const soldNames = new Set();
+      last30.forEach((s) => s.items.forEach((item) => soldNames.add(item.name)));
+
+      const rows = products.map((p) => {
+        const moving = soldNames.has(p.name);
+        return '<tr>' +
+          '<td>' + p.name + '</td>' +
+          '<td>' + p.branch + '</td>' +
+          '<td>' + p.qty + '</td>' +
+          '<td>₦' + (p.qty * p.price).toLocaleString() + '</td>' +
+          '<td><span class="badge ' + (moving ? 'ok' : 'warn') + '">' + (moving ? 'Moving' : 'Not Moving') + '</span></td>' +
+        '</tr>';
+      });
+      document.getElementById('inventoryReportBody').innerHTML = rows.join('') || '<tr><td colspan="5" class="empty-cell">No products yet.</td></tr>';
+    }
+
+    function sendEodSummary() {
+      const todaysSales = salesInRange('today').filter((s) => !s.refunded);
+      const revenue = todaysSales.reduce((sum, s) => sum + s.total, 0);
+      HW.logActivity('Sent EOD sales summary to management (₦' + revenue.toLocaleString() + ' across ' + todaysSales.length + ' sales)');
+      alert('📧 EOD Summary sent to management:\n\n' + todaysSales.length + ' sales today\nTotal revenue: ₦' + revenue.toLocaleString() + '\n\n(Simulated — a real deployment would email this automatically.)');
+    }
+
+    function lookupInvoice() {
+      const query = document.getElementById('invoiceSearch').value.trim().toUpperCase();
+      const result = document.getElementById('lookupResult');
+      if (!query) { result.innerHTML = ''; return; }
+
+      const sale = getSales().find((s) => s.invoiceNo.toUpperCase() === query);
+      if (!sale) {
+        result.innerHTML = '<div class="card placeholder-card"><div class="ph-icon">🔍</div><h3>No match found</h3><p>Check the invoice number and try again.</p></div>';
+        return;
+      }
+
+      result.innerHTML = '<div class="card">' +
+        '<div class="section-heading">Invoice ' + sale.invoiceNo + (sale.refunded ? ' <span class="badge danger">Refunded</span>' : '') + '</div>' +
+        '<div class="receipt-line"><span>Cashier</span><span>' + sale.cashier + '</span></div>' +
+        '<div class="receipt-line"><span>Date</span><span>' + new Date(sale.timestamp).toLocaleString() + '</span></div>' +
+        sale.items.map((item) => '<div class="receipt-line"><span>' + item.qty + ' × ' + item.name + '</span><span>₦' + (item.qty * item.price).toLocaleString() + '</span></div>').join('') +
+        (sale.discountPct ? '<div class="receipt-line"><span>Discount</span><span>-' + sale.discountPct + '%</span></div>' : '') +
+        '<div class="cart-total-row" style="margin-top:10px;"><span>Total</span><span>₦' + sale.total.toLocaleString() + '</span></div>' +
+        (sale.refunded
+          ? '<p style="font-size:0.8rem; color:#888; margin-top:14px;">Refunded ' + HW.timeAgo(sale.refundedAt) + '</p>'
+          : '<div class="modal-actions no-print" style="margin-top:16px;"><button class="btn-outline" style="border-color:#c8382f; color:#c8382f;" onclick="processRefund(\'' + sale.id + '\')">Process Refund</button></div>') +
+        '</div>';
+    }
+
+    function processRefund(saleId) {
+      if (!HW.requestManagerApproval('process this refund')) return;
+      const sales = getSales();
+      const sale = sales.find((s) => s.id === saleId);
+      if (!sale || sale.refunded) return;
+      if (!confirm('Refund invoice ' + sale.invoiceNo + ' for ₦' + sale.total.toLocaleString() + '? Stock will be returned.')) return;
+
+      sale.refunded = true;
+      sale.refundedAt = new Date().toISOString();
+      saveSales(sales);
+
+      const products = getProducts();
+      sale.items.forEach((item) => {
+        const p = products.find((prod) => prod.name === item.name);
+        if (p) p.qty += item.qty;
+      });
+      saveProducts(products);
+
+      HW.logActivity('Processed refund for invoice ' + sale.invoiceNo + ' (₦' + sale.total.toLocaleString() + ', manager-approved)');
+      lookupInvoice();
+      renderSalesReport();
+    }
+  </script>
+</body>
+</html>
