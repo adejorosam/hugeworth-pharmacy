@@ -1,6 +1,7 @@
 (function () {
-  // Change this when deploying — points at the live backend.
-  const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3055' : 'https://api.hugeworthpharmacy.com';
+  // Same-origin /api in production -- nginx (see frontend/nginx.conf) strips the /api prefix and proxies to
+  // the backend container, so this works unchanged regardless of IP, port or domain.
+  const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3055' : '/api';
 
   const TOKEN_KEY = 'hw_token';
   const STAFF_KEY = 'hw_staff';
