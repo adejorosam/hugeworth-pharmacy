@@ -1,18 +1,52 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ActivityService } from '../activity/activity.service';
 import { Branch } from '../common/branch.enum';
+import { CreateProductCategoryDto } from './dto/create-product-category.dto';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductCategory } from './product-category.entity';
 import { Product } from './product.entity';
 
 @Injectable()
 export class InventoryService {
   constructor(
     @InjectRepository(Product) private productRepo: Repository<Product>,
+    @InjectRepository(ProductCategory)
+    private categoryRepo: Repository<ProductCategory>,
     private activityService: ActivityService,
   ) {}
+
+  findAllCategories(): Promise<ProductCategory[]> {
+    return this.categoryRepo.find({ order: { name: 'ASC' } });
+  }
+
+  async createCategory(
+    dto: CreateProductCategoryDto,
+    actorId: string,
+  ): Promise<ProductCategory> {
+    const existing = await this.categoryRepo
+      .createQueryBuilder('c')
+      .where('LOWER(c.name) = LOWER(:name)', { name: dto.name })
+      .getOne();
+    if (existing) {
+      throw new ConflictException(
+        `Category "${dto.name}" already exists`,
+      );
+    }
+    const category = this.categoryRepo.create({ name: dto.name });
+    const saved = await this.categoryRepo.save(category);
+    await this.activityService.log(
+      actorId,
+      `Added product class "${saved.name}"`,
+    );
+    return saved;
+  }
 
   findAll(branch?: Branch): Promise<Product[]> {
     return this.productRepo.find({

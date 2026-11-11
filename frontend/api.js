@@ -7,14 +7,18 @@
   const STAFF_KEY = 'hw_staff';
 
   const NAV_ITEMS = [
-    { id: 'dashboard', label: 'Dashboard', icon: '📊', href: 'dashboard.html', roles: ['admin', 'pharmacist', 'cashier'] },
-    { id: 'inventory', label: 'Inventory', icon: '📦', href: 'inventory.html', roles: ['admin', 'pharmacist'] },
+    { id: 'dashboard', label: 'Dashboard', icon: '📊', href: 'dashboard.html', roles: ['admin', 'pharmacist', 'cashier', 'inventory_manager'] },
+    { id: 'inventory', label: 'Inventory', icon: '📦', href: 'inventory.html', roles: ['admin', 'pharmacist', 'inventory_manager'] },
     { id: 'pos', label: 'Sales / POS', icon: '🧾', href: 'pos.html', roles: ['admin', 'pharmacist', 'cashier'] },
     { id: 'customers', label: 'Customers', icon: '👥', href: 'customers.html', roles: ['admin', 'pharmacist'] },
     { id: 'reports', label: 'Reports', icon: '📈', href: 'reports.html', roles: ['admin', 'pharmacist'] },
     { id: 'staff', label: 'Staff', icon: '🧑‍💼', href: 'staff.html', roles: ['admin'] },
-    { id: 'activity', label: 'Activity Log', icon: '📝', href: 'activity.html', roles: ['admin', 'pharmacist', 'cashier'] },
+    { id: 'activity', label: 'Activity Log', icon: '📝', href: 'activity.html', roles: ['admin', 'pharmacist', 'cashier', 'inventory_manager'] },
   ];
+
+  function roleLabel(role) {
+    return (role || '').split('_').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
 
   function getToken() {
     return localStorage.getItem(TOKEN_KEY);
@@ -110,7 +114,7 @@
             '<div class="user-avatar">' + staff.name.charAt(0) + '</div>' +
             '<div>' +
               '<div class="user-name">' + staff.name + '</div>' +
-              '<div class="user-role" style="text-transform:capitalize;">' + staff.role + '</div>' +
+              '<div class="user-role">' + roleLabel(staff.role) + '</div>' +
             '</div>' +
           '</div>' +
           '<button class="btn-logout" onclick="HW.logout()">Log Out</button>' +
@@ -145,5 +149,6 @@
     renderShell,
     timeAgo,
     promptManagerPin,
+    roleLabel,
   };
 })();

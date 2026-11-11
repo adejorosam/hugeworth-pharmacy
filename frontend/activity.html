@@ -58,7 +58,7 @@
         '<tr>' +
           '<td>' + HW.timeAgo(entry.createdAt) + '</td>' +
           '<td>' + (entry.staff ? entry.staff.name : 'Unknown') + '</td>' +
-          '<td>' + (entry.staff ? '<span class="role-pill ' + entry.staff.role + '">' + entry.staff.role + '</span>' : '—') + '</td>' +
+          '<td>' + (entry.staff ? '<span class="role-pill ' + entry.staff.role + '">' + HW.roleLabel(entry.staff.role) + '</span>' : '—') + '</td>' +
           '<td>' + entry.action + '</td>' +
         '</tr>'
       ).join('');

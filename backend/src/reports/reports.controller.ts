@@ -13,8 +13,12 @@ export class ReportsController {
   constructor(private reportsService: ReportsService) {}
 
   @Get('sales')
-  salesReport(@Query('period') period: 'today' | '7' | '30' | 'all' = 'today') {
-    return this.reportsService.salesReport(period);
+  salesReport(
+    @Query('period') period: 'today' | '7' | '30' | 'all' = 'today',
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.reportsService.salesReport(period, from, to);
   }
 
   @Get('inventory')

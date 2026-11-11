@@ -27,12 +27,18 @@
         <div id="panelSales">
           <div class="filter-row">
             <label style="font-size:0.82rem; font-weight:700; color:#666;">Period:</label>
-            <select id="periodFilter" onchange="renderSalesReport()">
+            <select id="periodFilter" onchange="onPeriodChange()">
               <option value="today">Today</option>
               <option value="7">Last 7 Days</option>
               <option value="30">Last 30 Days</option>
               <option value="all">All Time</option>
+              <option value="custom">Custom Range…</option>
             </select>
+            <span id="customRangeFields" style="display:none; align-items:center; gap:8px;">
+              <input type="date" id="rangeFrom" onchange="renderSalesReport()" />
+              <span style="color:#888;">to</span>
+              <input type="date" id="rangeTo" onchange="renderSalesReport()" />
+            </span>
             <button class="btn-outline" onclick="sendEodSummary()" style="margin-left:auto;">📧 Send Today's EOD Summary to Management</button>
           </div>
 
@@ -113,9 +119,24 @@
       if (tab === 'inventory') renderInventoryReport();
     }
 
+    function onPeriodChange() {
+      const isCustom = document.getElementById('periodFilter').value === 'custom';
+      document.getElementById('customRangeFields').style.display = isCustom ? 'inline-flex' : 'none';
+      if (!isCustom) renderSalesReport();
+    }
+
     async function renderSalesReport() {
       const period = document.getElementById('periodFilter').value;
-      const report = await HW.apiFetch('/reports/sales?period=' + period);
+      let query = 'period=' + period;
+
+      if (period === 'custom') {
+        const from = document.getElementById('rangeFrom').value;
+        const to = document.getElementById('rangeTo').value;
+        if (!from || !to) return;
+        query = 'from=' + from + '&to=' + to;
+      }
+
+      const report = await HW.apiFetch('/reports/sales?' + query);
 
       document.getElementById('repRevenue').textContent = '₦' + report.revenue.toLocaleString();
       document.getElementById('repTxns').textContent = report.transactions;

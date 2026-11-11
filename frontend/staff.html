@@ -57,6 +57,7 @@
             <option value="admin">Admin</option>
             <option value="pharmacist">Pharmacist</option>
             <option value="cashier">Cashier</option>
+            <option value="inventory_manager">Inventory Manager</option>
           </select>
         </div>
         <div class="modal-actions">
@@ -84,7 +85,7 @@
         '<tr>' +
           '<td>' + s.name + (s.id === session.id ? ' <span class="badge info">You</span>' : '') + '</td>' +
           '<td>' + s.email + '</td>' +
-          '<td><span class="role-pill ' + s.role + '">' + s.role + '</span></td>' +
+          '<td><span class="role-pill ' + s.role + '">' + HW.roleLabel(s.role) + '</span></td>' +
           '<td>' + (s.isActive ? '<span class="badge ok">Active</span>' : '<span class="badge danger">Inactive</span>') + '</td>' +
           '<td>' +
             '<button class="icon-btn" title="Edit" onclick="openEditModal(\'' + s.id + '\')">✏️</button>' +

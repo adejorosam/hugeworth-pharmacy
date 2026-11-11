@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThanOrEqual, Repository } from 'typeorm';
+import { Between, MoreThanOrEqual, Repository } from 'typeorm';
 import { ActivityService } from '../activity/activity.service';
 import { Product } from '../inventory/product.entity';
 import { Sale } from '../sales/sale.entity';
@@ -17,6 +17,15 @@ function startOfPeriod(period: Period): Date | null {
   return new Date(Date.now() - Number(period) * 86400000);
 }
 
+function parseRangeBound(dateStr: string, endOfDay: boolean): Date {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) {
+    throw new BadRequestException(`Invalid date: ${dateStr}`);
+  }
+  d.setHours(endOfDay ? 23 : 0, endOfDay ? 59 : 0, endOfDay ? 59 : 0, endOfDay ? 999 : 0);
+  return d;
+}
+
 @Injectable()
 export class ReportsService {
   constructor(
@@ -25,10 +34,27 @@ export class ReportsService {
     private activityService: ActivityService,
   ) {}
 
-  async salesReport(period: Period) {
-    const since = startOfPeriod(period);
+  async salesReport(period: Period, from?: string, to?: string) {
+    let where: object = {};
+    if (from || to) {
+      if (!from || !to) {
+        throw new BadRequestException(
+          'Both "from" and "to" are required for a custom range',
+        );
+      }
+      const start = parseRangeBound(from, false);
+      const end = parseRangeBound(to, true);
+      if (start > end) {
+        throw new BadRequestException('"from" must be before "to"');
+      }
+      where = { createdAt: Between(start, end) };
+    } else {
+      const since = startOfPeriod(period);
+      where = since ? { createdAt: MoreThanOrEqual(since) } : {};
+    }
+
     const allSales = await this.saleRepo.find({
-      where: since ? { createdAt: MoreThanOrEqual(since) } : {},
+      where,
       order: { createdAt: 'DESC' },
     });
 
@@ -55,7 +81,14 @@ export class ReportsService {
       .map(([name, v]) => ({ name, qty: v.qty, revenue: Math.round(v.revenue) }))
       .sort((a, b) => b.revenue - a.revenue);
 
-    return { period, revenue, transactions, avgSale, refundCount, topProducts };
+    return {
+      period: from && to ? 'custom' : period,
+      revenue,
+      transactions,
+      avgSale,
+      refundCount,
+      topProducts,
+    };
   }
 
   async inventoryReport() {

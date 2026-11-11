@@ -298,6 +298,7 @@ table.hw-table tr:last-child td { border-bottom: none; }
 .role-pill.admin { background: rgba(26,37,96,0.1); color: var(--navy); }
 .role-pill.pharmacist { background: rgba(245,166,35,0.15); color: var(--gold-dark); }
 .role-pill.cashier { background: rgba(46,160,90,0.12); color: #2e9a5a; }
+.role-pill.inventory_manager { background: rgba(123,97,255,0.12); color: #6a4fd6; }
 
 .section-heading { font-size: 1rem; font-weight: 800; color: var(--navy-dark); margin-bottom: 16px; }
 

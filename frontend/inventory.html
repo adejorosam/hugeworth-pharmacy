@@ -22,7 +22,7 @@
 
         <div class="content-header">
           <div class="section-heading" style="margin-bottom:0;">All Products</div>
-          <button class="btn-gold" onclick="openAddModal()">+ Add Product</button>
+          <button class="btn-gold" id="addProductBtn" onclick="openAddModal()">+ Add Product</button>
         </div>
 
         <div class="filter-row">
@@ -71,15 +71,7 @@
         <div class="field-row">
           <div class="field">
             <label>Category</label>
-            <select id="fieldCategory">
-              <option>Analgesics</option>
-              <option>Antibiotics</option>
-              <option>Antimalarials</option>
-              <option>Antidiabetics</option>
-              <option>Antihypertensives</option>
-              <option>Vitamins &amp; Supplements</option>
-              <option>Cold &amp; Flu</option>
-              <option>Other</option>
+            <select id="fieldCategory" onchange="onCategoryChange()">
             </select>
           </div>
           <div class="field">
@@ -136,8 +128,48 @@
       staff = HW.renderShell('inventory');
       if (!staff) return;
       if (staff.role === 'cashier') { window.location.href = 'dashboard.html'; return; }
+      if (!canEdit()) document.getElementById('addProductBtn').style.display = 'none';
+      await loadCategories();
       await renderTable();
     })();
+
+    function canEdit() {
+      return staff.role === 'admin' || staff.role === 'inventory_manager';
+    }
+
+    const ADD_CATEGORY_VALUE = '__add_new__';
+
+    async function loadCategories(selectName) {
+      const categories = await HW.apiFetch('/inventory/categories');
+      const select = document.getElementById('fieldCategory');
+      select.innerHTML = categories.map((c) =>
+        '<option value="' + c.name + '">' + c.name + '</option>'
+      ).join('') + '<option value="' + ADD_CATEGORY_VALUE + '">+ Add new category…</option>';
+      if (selectName) select.value = selectName;
+      return categories;
+    }
+
+    async function onCategoryChange() {
+      const select = document.getElementById('fieldCategory');
+      if (select.value !== ADD_CATEGORY_VALUE) return;
+
+      const name = (window.prompt('New product class name:') || '').trim();
+      if (!name) {
+        select.selectedIndex = 0;
+        return;
+      }
+
+      try {
+        const category = await HW.apiFetch('/inventory/categories', {
+          method: 'POST',
+          body: JSON.stringify({ name }),
+        });
+        await loadCategories(category.name);
+      } catch (err) {
+        alert(err.message || 'Could not create category');
+        select.selectedIndex = 0;
+      }
+    }
 
     function statusFor(p) {
       const daysToExpiry = Math.floor((new Date(p.expiryDate) - new Date()) / 86400000);
@@ -177,9 +209,11 @@
           '<td>' + new Date(p.expiryDate).toLocaleDateString() + '</td>' +
           '<td><span class="badge ' + status.cls + '">' + status.label + '</span></td>' +
           '<td>' +
-            '<button class="icon-btn" title="Restock" onclick="restock(\'' + p.id + '\')">➕</button>' +
-            '<button class="icon-btn" title="Edit" onclick="openEditModal(\'' + p.id + '\')">✏️</button>' +
-            '<button class="icon-btn" title="Delete" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button>' +
+            (canEdit() ?
+              '<button class="icon-btn" title="Restock" onclick="restock(\'' + p.id + '\')">➕</button>' +
+              '<button class="icon-btn" title="Edit" onclick="openEditModal(\'' + p.id + '\')">✏️</button>' +
+              '<button class="icon-btn" title="Delete" onclick="deleteProduct(\'' + p.id + '\')">🗑️</button>'
+              : '')  +
           '</td>' +
         '</tr>';
       }).join('');

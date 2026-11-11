@@ -64,7 +64,7 @@
     (async () => {
       const staff = HW.renderShell('dashboard');
       if (!staff) return;
-      document.getElementById('welcomeSub').textContent = 'Signed in as ' + staff.name + ' (' + staff.role + ')';
+      document.getElementById('welcomeSub').textContent = 'Signed in as ' + staff.name + ' (' + HW.roleLabel(staff.role) + ')';
 
       try {
         const [inventory, sales, activity] = await Promise.all([
@@ -78,11 +78,17 @@
 
         const today = new Date().toDateString();
         const salesToday = sales.filter((s) => new Date(s.createdAt).toDateString() === today);
-        const revenueToday = salesToday.reduce((sum, s) => sum + Number(s.total), 0);
 
         document.getElementById('statSalesToday').textContent = salesToday.length;
-        document.getElementById('statRevenueToday').textContent = '₦' + revenueToday.toLocaleString();
         document.getElementById('statActivity').textContent = activity.length;
+
+        if (staff.role === 'admin') {
+          const revenueToday = salesToday.reduce((sum, s) => sum + Number(s.total), 0);
+          document.getElementById('statRevenueToday').textContent = '₦' + revenueToday.toLocaleString();
+        } else {
+          document.getElementById('statRevenueToday').textContent = '🔒';
+          document.getElementById('statRevenueToday').title = 'Visible to Admin only';
+        }
 
         if (staff.role !== 'cashier') {
           const lowStockItems = inventory.filter((p) => p.qty <= p.minQty);
@@ -93,13 +99,15 @@
             ).join('');
           }
 
-          const customers = await HW.apiFetch('/customers');
-          const dueSoon = customers.filter((c) => Math.ceil((new Date(c.refillDue) - new Date()) / 86400000) <= 7);
-          if (dueSoon.length > 0) {
-            document.getElementById('refillBanner').style.display = 'block';
-            document.getElementById('refillList').innerHTML = dueSoon.map((c) =>
-              '<div>• <strong>' + c.name + '</strong> — ' + c.medication + ' due ' + new Date(c.refillDue).toLocaleDateString() + '</div>'
-            ).join('');
+          if (staff.role === 'admin' || staff.role === 'pharmacist') {
+            const customers = await HW.apiFetch('/customers');
+            const dueSoon = customers.filter((c) => Math.ceil((new Date(c.refillDue) - new Date()) / 86400000) <= 7);
+            if (dueSoon.length > 0) {
+              document.getElementById('refillBanner').style.display = 'block';
+              document.getElementById('refillList').innerHTML = dueSoon.map((c) =>
+                '<div>• <strong>' + c.name + '</strong> — ' + c.medication + ' due ' + new Date(c.refillDue).toLocaleDateString() + '</div>'
+              ).join('');
+            }
           }
         }
       } catch (err) {
